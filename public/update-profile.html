@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Update Profile</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Update Profile</h1>
+
+        <p>
+            Update your profile information.
+        </p>
+
+        <!-- ====================== FORM ====================== -->
+
+        <input
+            type="text"
+            id="name"
+            placeholder="Enter Name"
+        >
+
+        <input
+            type="text"
+            id="phone"
+            placeholder="Enter Phone"
+        >
+
+        <input
+            type="text"
+            id="address"
+            placeholder="Enter Address"
+        >
+
+        <input
+            type="text"
+            id="state"
+            placeholder="Enter State"
+        >
+
+        <input
+            type="text"
+            id="city"
+            placeholder="Enter City"
+        >
+
+        <button
+            class="primary-btn"
+            onclick="updateProfile()"
+        >
+            Update Profile
+        </button>
+
+        <!-- ====================== OUTPUT ====================== -->
+
+        <div class="output" id="output"></div>
+
+        <!-- ====================== NAVIGATION ====================== -->
+
+        <div class="btn-container">
+
+            <button
+                class="login-btn"
+                onclick="goToProfile()"
+            >
+                Profile
+            </button>
+
+            <button
+                class="signup-btn"
+                onclick="goHome()"
+            >
+                Home
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const BASE_URL = "http://localhost:8000";
+
+        // ====================== TOKEN CHECK ======================
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+
+            alert("Please login first");
+
+            window.location.href = "login.html";
+        }
+
+        // ====================== LOAD PROFILE ======================
+
+        async function loadProfile() {
+
+            try {
+
+                const response = await fetch(
+                    `${BASE_URL}/profile`,
+                    {
+                        method: "GET",
+
+                        headers: {
+                            "Content-Type": "application/json",
+
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (response.status === 401) {
+
+                    localStorage.removeItem("token");
+
+                    alert("Session expired");
+
+                    window.location.href =
+                        "login.html";
+
+                    return;
+                }
+
+                const result = await response.json();
+
+                const user = result.user;
+
+                document.getElementById("name").value =
+                    user.name || "";
+
+                document.getElementById("phone").value =
+                    user.phone || "";
+
+                document.getElementById("address").value =
+                    user.address || "";
+
+                document.getElementById("state").value =
+                    user.state || "";
+
+                document.getElementById("city").value =
+                    user.city || "";
+
+            } catch (error) {
+
+                document.getElementById("output")
+                    .innerText = error.message;
+            }
+        }
+
+        // ====================== UPDATE PROFILE ======================
+
+        async function updateProfile() {
+
+            try {
+
+                const data = {
+
+                    name:
+                        document.getElementById("name").value,
+
+                    phone:
+                        document.getElementById("phone").value,
+
+                    address:
+                        document.getElementById("address").value,
+
+                    state:
+                        document.getElementById("state").value,
+
+                    city:
+                        document.getElementById("city").value
+                };
+
+                const response = await fetch(
+                    `${BASE_URL}/update_profile`,
+                    {
+                        method: "PUT",
+
+                        headers: {
+                            "Content-Type": "application/json",
+
+                            "Authorization":
+                                `Bearer ${token}`
+                        },
+
+                        body: JSON.stringify(data)
+                    }
+                );
+
+                const result = await response.json();
+
+                document.getElementById("output")
+                    .innerText =
+                    JSON.stringify(result, null, 2);
+
+                if (response.ok) {
+
+                    alert("Profile Updated");
+                }
+
+            } catch (error) {
+
+                document.getElementById("output")
+                    .innerText = error.message;
+            }
+        }
+
+        // ====================== NAVIGATION ======================
+
+        function goToProfile() {
+
+            window.location.href = "profile.html";
+        }
+
+        function goHome() {
+
+            window.location.href = "index.html";
+        }
+
+        // ====================== INITIAL LOAD ======================
+
+        loadProfile();
+
+    </script>
+
+</body>
+
+</html>

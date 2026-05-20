@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Signup</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Create Account</h1>
+
+        <p>
+            Signup to access protected routes
+            and authentication features.
+        </p>
+
+        <!-- ====================== FORM ====================== -->
+
+        <input
+            type="text"
+            id="name"
+            placeholder="Enter Name"
+        >
+
+        <input
+            type="email"
+            id="email"
+            placeholder="Enter Email"
+        >
+
+        <input
+            type="text"
+            id="phone"
+            placeholder="Enter Phone"
+        >
+
+        <input
+            type="text"
+            id="address"
+            placeholder="Enter Address"
+        >
+
+        <input
+            type="text"
+            id="state"
+            placeholder="Enter State"
+        >
+
+        <input
+            type="text"
+            id="city"
+            placeholder="Enter City"
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Enter Password"
+        >
+
+        <button
+            class="primary-btn"
+            onclick="signup()"
+        >
+            Signup
+        </button>
+
+        <!-- ====================== OUTPUT ====================== -->
+
+        <div class="output" id="output"></div>
+
+        <!-- ====================== NAVIGATION ====================== -->
+
+        <div class="btn-container">
+
+            <button
+                class="login-btn"
+                onclick="goToLogin()"
+            >
+                Login
+            </button>
+
+            <button
+                class="signup-btn"
+                onclick="goToHome()"
+            >
+                Home
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const BASE_URL = "http://localhost:8000";
+
+        // ====================== SIGNUP ======================
+
+        async function signup() {
+
+            try {
+
+                const data = {
+
+                    name:
+                        document.getElementById("name").value,
+
+                    email:
+                        document.getElementById("email").value,
+
+                    phone:
+                        document.getElementById("phone").value,
+
+                    address:
+                        document.getElementById("address").value,
+
+                    state:
+                        document.getElementById("state").value,
+
+                    city:
+                        document.getElementById("city").value,
+
+                    password:
+                        document.getElementById("password").value
+                };
+
+                const response = await fetch(
+                    `${BASE_URL}/signup`,
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify(data)
+                    }
+                );
+
+                const result = await response.json();
+
+                document.getElementById("output")
+                    .innerText =
+                    JSON.stringify(result, null, 2);
+
+                // Success redirect
+
+                if (response.ok) {
+
+                    setTimeout(() => {
+
+                        alert(
+                            "Signup successful. Verify your email first."
+                        );
+
+                        window.location.href = "login.html";
+
+                    }, 1000);
+                }
+
+            } catch (error) {
+
+                document.getElementById("output")
+                    .innerText = error.message;
+            }
+        }
+
+        // ====================== NAVIGATION ======================
+
+        function goToLogin() {
+
+            window.location.href = "login.html";
+        }
+
+        function goToHome() {
+
+            window.location.href = "index.html";
+        }
+
+    </script>
+
+</body>
+
+</html>

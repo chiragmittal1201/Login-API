@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Auth System</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Authentication System</h1>
+
+        <p>
+            JWT Authentication with Signup,
+            Login, Email Verification,
+            Password Reset and Protected Routes.
+        </p>
+
+        <div class="btn-container">
+
+            <button
+                class="login-btn"
+                onclick="goToLogin()"
+            >
+                Login
+            </button>
+
+            <button
+                class="signup-btn"
+                onclick="goToSignup()"
+            >
+                Signup
+            </button>
+
+        </div>
+
+        <div class="user-box" id="userBox">
+
+            <h2>Logged In</h2>
+
+            <p id="welcomeText"></p>
+
+            <button
+                class="logout-btn"
+                onclick="logout()"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        // ====================== CHECK LOGIN ======================
+
+        const token = localStorage.getItem("token");
+
+        const userName = localStorage.getItem("userName");
+
+        if (token) {
+
+            document.getElementById("userBox")
+                .style.display = "block";
+
+            document.getElementById("welcomeText")
+                .innerText = `Welcome ${userName}`;
+        }
+
+        // ====================== REDIRECT FUNCTIONS ======================
+
+        function goToLogin() {
+
+            window.location.href = "login.html";
+        }
+
+        function goToSignup() {
+
+            window.location.href = "signup.html";
+        }
+
+        // ====================== LOGOUT ======================
+
+        function logout() {
+
+            localStorage.removeItem("token");
+
+            localStorage.removeItem("userName");
+
+            alert("Logged out successfully");
+
+            window.location.reload();
+        }
+
+    </script>
+
+</body>
+
+</html>

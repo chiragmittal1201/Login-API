@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Login</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Login</h1>
+
+        <p>
+            Login to access your protected profile
+            and authenticated routes.
+        </p>
+
+        <!-- ====================== FORM ====================== -->
+
+        <input
+            type="text"
+            id="emailOrPhone"
+            placeholder="Enter Email or Phone"
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Enter Password"
+        >
+
+        <button
+            class="primary-btn"
+            onclick="login()"
+        >
+            Login
+        </button>
+
+        <!-- ====================== OUTPUT ====================== -->
+
+        <div class="output" id="output"></div>
+
+        <!-- ====================== NAVIGATION ====================== -->
+
+        <div class="btn-container">
+
+            <button
+                class="signup-btn"
+                onclick="goToSignup()"
+            >
+                Signup
+            </button>
+
+            <button
+                class="login-btn"
+                onclick="goToHome()"
+            >
+                Home
+            </button>
+
+        </div>
+
+        <!-- ====================== EXTRA LINKS ====================== -->
+
+        <div style="margin-top: 20px;">
+
+            <a
+                href="forgot-password.html"
+                style="
+                    color: #60a5fa;
+                    text-decoration: none;
+                "
+            >
+                Forgot Password?
+            </a>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const BASE_URL = "http://localhost:8000";
+
+        // ====================== AUTO REDIRECT ======================
+
+        const existingToken =
+            localStorage.getItem("token");
+
+        if (existingToken) {
+
+            window.location.href = "profile.html";
+        }
+
+        // ====================== LOGIN ======================
+
+        async function login() {
+
+            try {
+
+                const data = {
+
+                    emailOrPhone:
+                        document.getElementById(
+                            "emailOrPhone"
+                        ).value,
+
+                    password:
+                        document.getElementById(
+                            "password"
+                        ).value
+                };
+
+                const response = await fetch(
+                    `${BASE_URL}/login`,
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify(data)
+                    }
+                );
+
+                const result = await response.json();
+
+                document.getElementById("output")
+                    .innerText =
+                    JSON.stringify(result, null, 2);
+
+                // ====================== SUCCESS ======================
+
+                if (response.ok && result.token) {
+
+                    // Save token
+
+                    localStorage.setItem(
+                        "token",
+                        result.token
+                    );
+
+                    // Save username
+
+                    localStorage.setItem(
+                        "userName",
+                        data.emailOrPhone
+                    );
+
+                    setTimeout(() => {
+
+                        alert("Login Successful");
+
+                        window.location.href =
+                            "profile.html";
+
+                    }, 1000);
+                }
+
+            } catch (error) {
+
+                document.getElementById("output")
+                    .innerText = error.message;
+            }
+        }
+
+        // ====================== NAVIGATION ======================
+
+        function goToSignup() {
+
+            window.location.href = "signup.html";
+        }
+
+        function goToHome() {
+
+            window.location.href = "index.html";
+        }
+
+    </script>
+
+</body>
+
+</html>

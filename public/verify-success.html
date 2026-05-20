@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Email Verified</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Email Verified ✅</h1>
+
+        <p>
+            Your email has been successfully verified.
+            You can now login to your account.
+        </p>
+
+        <!-- ====================== SUCCESS BOX ====================== -->
+
+        <div class="output">
+
+            Verification completed successfully.
+
+        </div>
+
+        <!-- ====================== ACTION BUTTONS ====================== -->
+
+        <div class="btn-container">
+
+            <button
+                class="login-btn"
+                onclick="goToLogin()"
+            >
+                Login
+            </button>
+
+            <button
+                class="signup-btn"
+                onclick="goHome()"
+            >
+                Home
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        // ====================== REDIRECT ======================
+
+        function goToLogin() {
+
+            window.location.href = "login.html";
+        }
+
+        function goHome() {
+
+            window.location.href = "index.html";
+        }
+
+    </script>
+
+</body>
+
+</html>
