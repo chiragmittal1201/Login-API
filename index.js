@@ -8,6 +8,9 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
 
+const authorizeRoles =
+    require("./middleware/roleMiddleware");
+
 const app = express();
 
 const PORT = 8000;
@@ -29,18 +32,28 @@ app.use(express.urlencoded({ extended: true }));
 
 mongoose.connect("mongodb://127.0.0.1:27017/authapp")
     .then(() => {
+
         console.log("MongoDB Connected");
+
     })
     .catch((err) => {
-        console.log("MongoDB Connection Error:", err);
+
+        console.log(
+            "MongoDB Connection Error:",
+            err
+        );
     });
 
 // ====================== EMAIL TRANSPORTER ======================
 
 const transporter = nodemailer.createTransport({
+
     service: "gmail",
+
     auth: {
+
         user: process.env.EMAIL_USER,
+
         pass: process.env.EMAIL_PASS
     }
 });
@@ -50,69 +63,124 @@ const transporter = nodemailer.createTransport({
 const userSchema = new mongoose.Schema({
 
     name: {
+
         type: String,
+
         required: true
     },
 
     email: {
+
         type: String,
+
         required: true,
+
         unique: true
     },
 
     phone: {
+
         type: String,
+
         required: true,
+
         unique: true
     },
 
     address: {
+
         type: String
     },
 
     state: {
+
         type: String
     },
 
     city: {
+
         type: String
     },
 
     password: {
+
         type: String,
+
         required: true
     },
 
+    // ====================== ROLE ======================
+
+    role: {
+
+        type: String,
+
+        enum: [
+            "user",
+            "manager",
+            "admin"
+        ],
+
+        default: "user"
+    },
+
+    // ====================== MANAGER REQUEST ======================
+
+    managerRequestStatus: {
+
+        type: String,
+
+        enum: [
+            "none",
+            "pending",
+            "approved",
+            "rejected"
+        ],
+
+        default: "none"
+    },
+
     isVerified: {
+
         type: Boolean,
+
         default: false
     },
 
     verifiedAt: {
+
         type: Date
     },
 
     verifyEmailToken: {
+
         type: String
     },
 
     verifyEmailExpires: {
+
         type: Date
     },
 
     resetPasswordToken: {
+
         type: String
     },
 
     resetPasswordExpires: {
+
         type: Date
     }
 
 }, {
+
     timestamps: true
 });
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model(
+    "User",
+    userSchema
+);
 
 // ====================== AUTH MIDDLEWARE ======================
 
@@ -120,26 +188,42 @@ const auth = async (req, res, next) => {
 
     try {
 
-        let token = req.headers.authorization;
+        let token =
+            req.headers.authorization;
 
         if (!token) {
 
-            return res.status(401).redirect("/login");
+            return res.status(401).json({
+
+                message:
+                    "Please login first"
+            });
         }
 
         if (token.startsWith("Bearer ")) {
 
-            token = token.split(" ")[1];
+            token =
+                token.split(" ")[1];
         }
 
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded =
+            jwt.verify(
+                token,
+                JWT_SECRET
+            );
 
-        const user = await User.findById(decoded.id)
-            .select("-password");
+        const user =
+            await User.findById(
+                decoded.id
+            ).select("-password");
 
         if (!user) {
 
-            return res.status(401).redirect("/login");
+            return res.status(401).json({
+
+                message:
+                    "User not found"
+            });
         }
 
         req.user = user;
@@ -148,7 +232,11 @@ const auth = async (req, res, next) => {
 
     } catch (error) {
 
-        return res.status(401).redirect("/login");
+        return res.status(401).json({
+
+            message:
+                "Invalid or Expired Token"
+        });
     }
 };
 
@@ -159,6 +247,7 @@ app.post("/signup", async (req, res) => {
     try {
 
         const {
+
             name,
             email,
             phone,
@@ -166,11 +255,13 @@ app.post("/signup", async (req, res) => {
             state,
             city,
             password
+
         } = req.body;
 
-        // ====================== REQUIRED FIELD VALIDATION ======================
+        // ====================== VALIDATION ======================
 
         const requiredFields = {
+
             name,
             email,
             phone,
@@ -182,50 +273,72 @@ app.post("/signup", async (req, res) => {
             if (!requiredFields[field]) {
 
                 return res.status(400).json({
-                    message: `${field} is required`
+
+                    message:
+                        `${field} is required`
                 });
             }
         }
 
-        // ====================== CHECK EXISTING USER ======================
+        // ====================== CHECK USER ======================
 
-        const existingUser = await User.findOne({
-            $or: [
-                { email },
-                { phone }
-            ]
-        });
+        const existingUser =
+            await User.findOne({
+
+                $or: [
+
+                    { email },
+
+                    { phone }
+                ]
+            });
 
         if (existingUser) {
 
             return res.status(400).json({
-                message: "User Already Exists"
+
+                message:
+                    "User Already Exists"
             });
         }
 
         // ====================== HASH PASSWORD ======================
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword =
+            await bcrypt.hash(
+                password,
+                10
+            );
 
-        // ====================== EMAIL VERIFICATION TOKEN ======================
+        // ====================== VERIFY TOKEN ======================
 
-        const verifyToken = crypto.randomBytes(32).toString("hex");
+        const verifyToken =
+            crypto.randomBytes(32)
+                .toString("hex");
 
         // ====================== CREATE USER ======================
 
-        const user = await User.create({
-            name,
-            email,
-            phone,
-            address,
-            state,
-            city,
-            password: hashedPassword,
-            verifyEmailToken: verifyToken,
-            verifyEmailExpires: Date.now() + 3600000
-        });
+        const user =
+            await User.create({
 
-        // ====================== VERIFICATION LINK ======================
+                name,
+                email,
+                phone,
+                address,
+                state,
+                city,
+
+                password:
+                    hashedPassword,
+
+                verifyEmailToken:
+                    verifyToken,
+
+                verifyEmailExpires:
+                    Date.now() + 3600000
+            });
+
+        // ====================== VERIFY LINK ======================
 
         const verifyLink =
             `http://localhost:${PORT}/verify-email/${verifyToken}`;
@@ -233,14 +346,21 @@ app.post("/signup", async (req, res) => {
         // ====================== SEND EMAIL ======================
 
         await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+
+            from:
+                process.env.EMAIL_USER,
+
             to: email,
-            subject: "Verify Your Email",
+
+            subject:
+                "Verify Your Email",
+
             html: `
+
                 <h2>Email Verification</h2>
 
                 <p>
-                    Click the link below to verify your email:
+                    Click below to verify email
                 </p>
 
                 <a href="${verifyLink}">
@@ -249,26 +369,20 @@ app.post("/signup", async (req, res) => {
             `
         });
 
-        // ====================== REMOVE SENSITIVE DATA ======================
-
-        const userResponse = user.toObject();
-
-        delete userResponse.password;
-
-        delete userResponse.verifyEmailToken;
-
-        delete userResponse.resetPasswordToken;
-
-        // ====================== RESPONSE ======================
-
         return res.status(201).json({
-            message: "Signup Successful. Verification email sent.",
-            user: userResponse
+
+            success: true,
+
+            message:
+                "Signup Successful. Verification email sent.",
+
+            user
         });
 
     } catch (error) {
 
         return res.status(500).json({
+
             error: error.message
         });
     }
@@ -276,52 +390,64 @@ app.post("/signup", async (req, res) => {
 
 // ====================== VERIFY EMAIL ======================
 
-app.get("/verify-email/:token", async (req, res) => {
+app.get(
+    "/verify-email/:token",
 
-    try {
+    async (req, res) => {
 
-        const user = await User.findOne({
-            verifyEmailToken: req.params.token,
-            verifyEmailExpires: {
-                $gt: Date.now()
+        try {
+
+            const user =
+                await User.findOne({
+
+                    verifyEmailToken:
+                        req.params.token,
+
+                    verifyEmailExpires: {
+
+                        $gt: Date.now()
+                    }
+                });
+
+            if (!user) {
+
+                return res.status(400).json({
+
+                    message:
+                        "Invalid or Expired Token"
+                });
             }
-        });
 
-        if (!user) {
+            user.isVerified = true;
 
-            return res.status(400).json({
-                message: "Invalid or Expired Verification Token"
+            user.verifiedAt =
+                new Date();
+
+            user.verifyEmailToken =
+                undefined;
+
+            user.verifyEmailExpires =
+                undefined;
+
+            await user.save();
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Email Verified Successfully"
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
             });
         }
-
-        if (user.isVerified) {
-
-            return res.status(400).json({
-                message: "Email already verified"
-            });
-        }
-
-        user.isVerified = true;
-
-        user.verifiedAt = new Date();
-
-        user.verifyEmailToken = undefined;
-
-        user.verifyEmailExpires = undefined;
-
-        await user.save();
-
-        return res.json({
-            message: "Email Verified Successfully"
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            error: error.message
-        });
     }
-});
+);
 
 // ====================== LOGIN ======================
 
@@ -330,277 +456,808 @@ app.post("/login", async (req, res) => {
     try {
 
         const {
+
             emailOrPhone,
             password
+
         } = req.body;
 
         if (!emailOrPhone || !password) {
 
             return res.status(400).json({
-                message: "Email/Phone and Password are required"
+
+                message:
+                    "Email/Phone and Password are required"
             });
         }
 
-        const user = await User.findOne({
-            $or: [
-                { email: emailOrPhone },
-                { phone: emailOrPhone }
-            ]
-        });
+        const user =
+            await User.findOne({
+
+                $or: [
+
+                    {
+                        email:
+                            emailOrPhone
+                    },
+
+                    {
+                        phone:
+                            emailOrPhone
+                    }
+                ]
+            });
 
         if (!user) {
 
             return res.status(401).json({
-                message: "Invalid Credentials"
+
+                message:
+                    "Invalid Credentials"
             });
         }
 
         const isMatch =
-            await bcrypt.compare(password, user.password);
+            await bcrypt.compare(
+                password,
+                user.password
+            );
 
         if (!isMatch) {
 
             return res.status(401).json({
-                message: "Invalid Credentials"
+
+                message:
+                    "Invalid Credentials"
             });
         }
 
         if (!user.isVerified) {
 
             return res.status(401).json({
-                message: "Please verify your email first"
+
+                message:
+                    "Please verify email first"
             });
         }
 
-        const token = jwt.sign(
-            { id: user._id },
-            JWT_SECRET,
-            { expiresIn: "7d" }
-        );
+        // ====================== TOKEN ======================
+
+        const token =
+            jwt.sign(
+
+                {
+
+                    id: user._id,
+
+                    role: user.role
+                },
+
+                JWT_SECRET,
+
+                {
+
+                    expiresIn: "7d"
+                }
+            );
 
         return res.json({
-            message: "Login Successful",
-            token
+
+            success: true,
+
+            message:
+                "Login Successful",
+
+            token,
+
+            role: user.role
         });
 
     } catch (error) {
 
         return res.status(500).json({
+
             error: error.message
         });
     }
 });
 
-// ====================== USER PROFILE ======================
+// ====================== PROFILE ======================
 
-app.get("/profile", auth, async (req, res) => {
+app.get(
+    "/profile",
 
-    try {
+    auth,
+
+    async (req, res) => {
 
         return res.json({
+
             success: true,
+
             user: req.user
         });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            error: error.message
-        });
     }
-});
+);
 
 // ====================== UPDATE PROFILE ======================
 
-app.put("/update_profile", auth, async (req, res) => {
+app.put(
+    "/update_profile",
 
-    try {
+    auth,
 
-        const {
-            name,
-            phone,
-            address,
-            state,
-            city
-        } = req.body;
+    async (req, res) => {
 
-        const updatedUser = await User.findByIdAndUpdate(
-            req.user._id,
-            {
+        try {
+
+            const {
+
                 name,
                 phone,
                 address,
                 state,
                 city
-            },
-            {
-                returnDocument: "after"
+
+            } = req.body;
+
+            const updatedUser =
+                await User.findByIdAndUpdate(
+
+                    req.user._id,
+
+                    {
+
+                        name,
+                        phone,
+                        address,
+                        state,
+                        city
+                    },
+
+                    {
+
+                        returnDocument:
+                            "after"
+                    }
+                ).select("-password");
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Profile Updated",
+
+                updatedUser
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
+            });
+        }
+    }
+);
+
+// ====================== REQUEST MANAGER ACCESS ======================
+
+app.post(
+    "/request-manager-role",
+
+    auth,
+
+    authorizeRoles("user"),
+
+    async (req, res) => {
+
+        try {
+
+            const user =
+                await User.findById(
+                    req.user._id
+                );
+
+            if (!user) {
+
+                return res.status(404).json({
+
+                    message:
+                        "User not found"
+                });
             }
-        ).select("-password");
+
+            if (
+                user.managerRequestStatus ===
+                "pending"
+            ) {
+
+                return res.status(400).json({
+
+                    message:
+                        "Request already pending"
+                });
+            }
+
+            user.managerRequestStatus =
+                "pending";
+
+            await user.save();
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Manager request submitted"
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
+            });
+        }
+    }
+);
+
+// ====================== REQUEST STATUS ======================
+
+app.get(
+    "/request-status",
+
+    auth,
+
+    async (req, res) => {
 
         return res.json({
-            message: "Profile Updated",
-            updatedUser
-        });
 
-    } catch (error) {
+            success: true,
 
-        return res.status(500).json({
-            error: error.message
+            role:
+                req.user.role,
+
+            managerRequestStatus:
+                req.user.managerRequestStatus
         });
     }
-});
+);
+
+// ====================== ADMIN DASHBOARD ======================
+
+app.get(
+    "/admin-dashboard",
+
+    auth,
+
+    authorizeRoles("admin"),
+
+    async (req, res) => {
+
+        return res.json({
+
+            success: true,
+
+            message:
+                "Welcome Admin",
+
+            user: req.user
+        });
+    }
+);
+
+// ====================== MANAGER DASHBOARD ======================
+
+app.get(
+    "/manager-dashboard",
+
+    auth,
+
+    authorizeRoles(
+        "manager",
+        "admin"
+    ),
+
+    async (req, res) => {
+
+        return res.json({
+
+            success: true,
+
+            message:
+                "Welcome Manager",
+
+            user: req.user
+        });
+    }
+);
+
+// ====================== GET ALL USERS ======================
+
+app.get(
+    "/all-users",
+
+    auth,
+
+    authorizeRoles(
+        "admin",
+        "manager"
+    ),
+
+    async (req, res) => {
+
+        try {
+
+            const users =
+                await User.find()
+                    .select("-password");
+
+            return res.json({
+
+                success: true,
+
+                count: users.length,
+
+                users
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
+            });
+        }
+    }
+);
+
+// ====================== APPROVE MANAGER ======================
+
+app.put(
+    "/approve-manager/:id",
+
+    auth,
+
+    authorizeRoles("admin"),
+
+    async (req, res) => {
+
+        try {
+
+            const user =
+                await User.findById(
+                    req.params.id
+                );
+
+            if (!user) {
+
+                return res.status(404).json({
+
+                    message:
+                        "User not found"
+                });
+            }
+
+            user.role = "manager";
+
+            user.managerRequestStatus =
+                "approved";
+
+            await user.save();
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Manager approved"
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
+            });
+        }
+    }
+);
+
+// ====================== REJECT MANAGER ======================
+
+app.put(
+    "/reject-manager/:id",
+
+    auth,
+
+    authorizeRoles("admin"),
+
+    async (req, res) => {
+
+        try {
+
+            const user =
+                await User.findById(
+                    req.params.id
+                );
+
+            if (!user) {
+
+                return res.status(404).json({
+
+                    message:
+                        "User not found"
+                });
+            }
+
+            user.managerRequestStatus =
+                "rejected";
+
+            await user.save();
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Manager request rejected"
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
+            });
+        }
+    }
+);
+
+// ====================== ADMIN CHANGE PASSWORD ======================
+
+app.put(
+    "/admin/change-password/:id",
+
+    auth,
+
+    authorizeRoles("admin"),
+
+    async (req, res) => {
+
+        try {
+
+            const { newPassword } =
+                req.body;
+
+            if (!newPassword) {
+
+                return res.status(400).json({
+
+                    message:
+                        "New password required"
+                });
+            }
+
+            const user =
+                await User.findById(
+                    req.params.id
+                );
+
+            if (!user) {
+
+                return res.status(404).json({
+
+                    message:
+                        "User not found"
+                });
+            }
+
+            user.password =
+                await bcrypt.hash(
+                    newPassword,
+                    10
+                );
+
+            await user.save();
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Password changed successfully"
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
+            });
+        }
+    }
+);
+
+// ====================== MANAGER SEND RESET LINK ======================
+
+app.post(
+    "/manager/send-reset-link/:id",
+
+    auth,
+
+    authorizeRoles(
+        "manager",
+        "admin"
+    ),
+
+    async (req, res) => {
+
+        try {
+
+            const user =
+                await User.findById(
+                    req.params.id
+                );
+
+            if (!user) {
+
+                return res.status(404).json({
+
+                    message:
+                        "User not found"
+                });
+            }
+
+            const resetToken =
+                crypto.randomBytes(32)
+                    .toString("hex");
+
+            const hashedToken =
+                crypto
+                    .createHash("sha256")
+                    .update(resetToken)
+                    .digest("hex");
+
+            user.resetPasswordToken =
+                hashedToken;
+
+            user.resetPasswordExpires =
+                Date.now() + 3600000;
+
+            await user.save();
+
+            const resetLink =
+                `http://127.0.0.1:5500/public/reset-password.html?token=${resetToken}`;
+
+            await transporter.sendMail({
+
+                from:
+                    process.env.EMAIL_USER,
+
+                to: user.email,
+
+                subject:
+                    "Manager Password Reset",
+
+                html: `
+
+                    <h2>Password Reset</h2>
+
+                    <p>
+                        Manager requested password reset.
+                    </p>
+
+                    <a href="${resetLink}">
+                        ${resetLink}
+                    </a>
+                `
+            });
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Reset link sent successfully"
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
+            });
+        }
+    }
+);
 
 // ====================== FORGOT PASSWORD ======================
 
-app.post("/forgot-password", async (req, res) => {
+app.post(
+    "/forgot-password",
 
-    try {
+    async (req, res) => {
 
-        const { email } = req.body;
+        try {
 
-        if (!email) {
+            const { email } =
+                req.body;
 
-            return res.status(400).json({
-                message: "Email is required"
+            if (!email) {
+
+                return res.status(400).json({
+
+                    message:
+                        "Email is required"
+                });
+            }
+
+            const user =
+                await User.findOne({
+                    email
+                });
+
+            if (!user) {
+
+                return res.status(404).json({
+
+                    message:
+                        "User not found"
+                });
+            }
+
+            const resetToken =
+                crypto.randomBytes(32)
+                    .toString("hex");
+
+            const hashedToken =
+                crypto
+                    .createHash("sha256")
+                    .update(resetToken)
+                    .digest("hex");
+
+            user.resetPasswordToken =
+                hashedToken;
+
+            user.resetPasswordExpires =
+                Date.now() + 3600000;
+
+            await user.save();
+
+            const resetLink =
+                `http://127.0.0.1:5500/public/reset-password.html?token=${resetToken}`;
+
+            await transporter.sendMail({
+
+                from:
+                    process.env.EMAIL_USER,
+
+                to: user.email,
+
+                subject:
+                    "Reset Password",
+
+                html: `
+
+                    <h2>Password Reset</h2>
+
+                    <a href="${resetLink}">
+                        ${resetLink}
+                    </a>
+                `
+            });
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Reset link sent"
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
             });
         }
-
-        const user = await User.findOne({ email });
-
-        if (!user) {
-
-            return res.status(404).json({
-                message: "User Not Found"
-            });
-        }
-
-        // Generate token
-
-        const resetToken =
-            crypto.randomBytes(32).toString("hex");
-
-        // Hash token
-
-        const hashedToken = crypto
-            .createHash("sha256")
-            .update(resetToken)
-            .digest("hex");
-
-        // Save token
-
-        user.resetPasswordToken = hashedToken;
-
-        user.resetPasswordExpires =
-            Date.now() + 3600000;
-
-        await user.save();
-
-        // Reset link
-
-        const resetLink =
-            `http://localhost:${PORT}/reset-password/${resetToken}`;
-
-        // Send email
-
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "Reset Password",
-            html: `
-                <h2>Reset Password</h2>
-
-                <p>
-                    Click the link below to reset your password:
-                </p>
-
-                <a href="${resetLink}">
-                    ${resetLink}
-                </a>
-            `
-        });
-
-        return res.json({
-            message: "Password reset link sent to email"
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            error: error.message
-        });
     }
-});
+);
 
 // ====================== RESET PASSWORD ======================
 
-app.post("/reset-password/:token", async (req, res) => {
+app.post(
+    "/reset-password/:token",
 
-    try {
+    async (req, res) => {
 
-        const { newPassword } = req.body;
+        try {
 
-        if (!newPassword) {
+            const { newPassword } =
+                req.body;
 
-            return res.status(400).json({
-                message: "New Password is required"
-            });
-        }
+            if (!newPassword) {
 
-        // Hash token
+                return res.status(400).json({
 
-        const hashedToken = crypto
-            .createHash("sha256")
-            .update(req.params.token)
-            .digest("hex");
-
-        // Find user
-
-        const user = await User.findOne({
-            resetPasswordToken: hashedToken,
-            resetPasswordExpires: {
-                $gt: Date.now()
+                    message:
+                        "New password required"
+                });
             }
-        });
 
-        if (!user) {
+            const hashedToken =
+                crypto
+                    .createHash("sha256")
+                    .update(
+                        req.params.token
+                    )
+                    .digest("hex");
 
-            return res.status(400).json({
-                message: "Invalid or Expired Token"
+            const user =
+                await User.findOne({
+
+                    resetPasswordToken:
+                        hashedToken,
+
+                    resetPasswordExpires: {
+
+                        $gt: Date.now()
+                    }
+                });
+
+            if (!user) {
+
+                return res.status(400).json({
+
+                    message:
+                        "Invalid or expired token"
+                });
+            }
+
+            user.password =
+                await bcrypt.hash(
+                    newPassword,
+                    10
+                );
+
+            user.resetPasswordToken =
+                undefined;
+
+            user.resetPasswordExpires =
+                undefined;
+
+            await user.save();
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Password reset successful"
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error: error.message
             });
         }
-
-        // Update password
-
-        user.password =
-            await bcrypt.hash(newPassword, 10);
-
-        // Remove reset fields
-
-        user.resetPasswordToken = undefined;
-
-        user.resetPasswordExpires = undefined;
-
-        await user.save();
-
-        return res.json({
-            message: "Password Reset Successful"
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-            error: error.message
-        });
     }
-});
+);
 
-// ====================== LOGIN PAGE ROUTE ======================
+// ====================== LOGIN ROUTE ======================
 
 app.get("/login", (req, res) => {
 
     return res.status(401).json({
-        message: "Please login to continue"
+
+        message:
+            "Please login to continue"
     });
 });
 
@@ -608,5 +1265,7 @@ app.get("/login", (req, res) => {
 
 app.listen(PORT, () => {
 
-    console.log(`🚀 Server started at port ${PORT}`);
+    console.log(
+        `🚀 Server started at port ${PORT}`
+    );
 });

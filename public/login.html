@@ -21,8 +21,8 @@
         <h1>Login</h1>
 
         <p>
-            Login to access your protected profile
-            and authenticated routes.
+            Login to access protected dashboards,
+            profile and role-based features.
         </p>
 
         <!-- ====================== FORM ====================== -->
@@ -90,16 +90,38 @@
 
     <script>
 
-        const BASE_URL = "http://localhost:8000";
+        const BASE_URL =
+            "http://localhost:8000";
 
         // ====================== AUTO REDIRECT ======================
 
         const existingToken =
             localStorage.getItem("token");
 
-        if (existingToken) {
+        const existingRole =
+            localStorage.getItem("role");
 
-            window.location.href = "profile.html";
+        if (existingToken && existingRole) {
+
+            if (existingRole === "admin") {
+
+                window.location.href =
+                    "admin-dashboard.html";
+            }
+
+            else if (
+                existingRole === "manager"
+            ) {
+
+                window.location.href =
+                    "manager-dashboard.html";
+            }
+
+            else {
+
+                window.location.href =
+                    "profile.html";
+            }
         }
 
         // ====================== LOGIN ======================
@@ -122,48 +144,102 @@
                 };
 
                 const response = await fetch(
+
                     `${BASE_URL}/login`,
+
                     {
+
                         method: "POST",
 
                         headers: {
-                            "Content-Type": "application/json"
+
+                            "Content-Type":
+                                "application/json"
                         },
 
-                        body: JSON.stringify(data)
+                        body:
+                            JSON.stringify(data)
                     }
                 );
 
-                const result = await response.json();
+                const result =
+                    await response.json();
 
                 document.getElementById("output")
                     .innerText =
-                    JSON.stringify(result, null, 2);
+                    JSON.stringify(
+                        result,
+                        null,
+                        2
+                    );
 
                 // ====================== SUCCESS ======================
 
-                if (response.ok && result.token) {
+                if (
+                    response.ok &&
+                    result.token
+                ) {
 
-                    // Save token
+                    // ====================== SAVE TOKEN ======================
 
                     localStorage.setItem(
+
                         "token",
+
                         result.token
                     );
 
-                    // Save username
+                    // ====================== SAVE USER ======================
 
                     localStorage.setItem(
+
                         "userName",
+
                         data.emailOrPhone
                     );
 
+                    // ====================== SAVE ROLE ======================
+
+                    localStorage.setItem(
+
+                        "role",
+
+                        result.role
+                    );
+
+                    // ====================== SUCCESS ALERT ======================
+
                     setTimeout(() => {
 
-                        alert("Login Successful");
+                        alert(
+                            "Login Successful"
+                        );
 
-                        window.location.href =
-                            "profile.html";
+                        // ====================== ROLE REDIRECT ======================
+
+                        if (
+                            result.role ===
+                            "admin"
+                        ) {
+
+                            window.location.href =
+                                "admin-dashboard.html";
+                        }
+
+                        else if (
+                            result.role ===
+                            "manager"
+                        ) {
+
+                            window.location.href =
+                                "manager-dashboard.html";
+                        }
+
+                        else {
+
+                            window.location.href =
+                                "profile.html";
+                        }
 
                     }, 1000);
                 }
@@ -171,7 +247,8 @@
             } catch (error) {
 
                 document.getElementById("output")
-                    .innerText = error.message;
+                    .innerText =
+                    error.message;
             }
         }
 
@@ -179,12 +256,14 @@
 
         function goToSignup() {
 
-            window.location.href = "signup.html";
+            window.location.href =
+                "signup.html";
         }
 
         function goToHome() {
 
-            window.location.href = "index.html";
+            window.location.href =
+                "index.html";
         }
 
     </script>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Manager Request Status</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+
+        .status-card {
+
+            margin-top: 25px;
+
+            background: #111827;
+
+            padding: 35px;
+
+            border-radius: 18px;
+
+            text-align: center;
+
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .status-icon {
+
+            font-size: 70px;
+
+            margin-bottom: 20px;
+        }
+
+        .status-title {
+
+            font-size: 28px;
+
+            margin-bottom: 10px;
+        }
+
+        .status-description {
+
+            color: #d1d5db;
+
+            margin-bottom: 25px;
+
+            line-height: 1.7;
+        }
+
+        .status-badge {
+
+            display: inline-block;
+
+            padding: 10px 22px;
+
+            border-radius: 30px;
+
+            font-size: 18px;
+
+            font-weight: bold;
+        }
+
+        .pending {
+
+            background: #f59e0b;
+
+            color: white;
+        }
+
+        .approved {
+
+            background: #10b981;
+
+            color: white;
+        }
+
+        .rejected {
+
+            background: #ef4444;
+
+            color: white;
+        }
+
+        .none {
+
+            background: #2563eb;
+
+            color: white;
+        }
+
+        .action-buttons {
+
+            margin-top: 30px;
+
+            display: flex;
+
+            gap: 15px;
+
+            justify-content: center;
+
+            flex-wrap: wrap;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Manager Request Status</h1>
+
+        <p>
+            Track your manager access request.
+        </p>
+
+        <!-- ====================== STATUS CARD ====================== -->
+
+        <div
+            class="status-card"
+            id="statusCard"
+        >
+
+            <div
+                class="status-icon"
+                id="statusIcon"
+            >
+                ⏳
+            </div>
+
+            <div
+                class="status-title"
+                id="statusTitle"
+            >
+                Loading...
+            </div>
+
+            <div
+                class="status-description"
+                id="statusDescription"
+            >
+                Fetching request status...
+            </div>
+
+            <div
+                class="status-badge pending"
+                id="statusBadge"
+            >
+                pending
+            </div>
+
+            <!-- ====================== ACTIONS ====================== -->
+
+            <div class="action-buttons">
+
+                <button
+                    class="primary-btn"
+                    onclick="goProfile()"
+                >
+                    Back To Profile
+                </button>
+
+                <button
+                    class="login-btn"
+                    onclick="goHome()"
+                >
+                    Home
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const BASE_URL =
+            "http://localhost:8000";
+
+        const token =
+            localStorage.getItem("token");
+
+        // ====================== TOKEN CHECK ======================
+
+        if (!token) {
+
+            alert("Please login first");
+
+            window.location.href =
+                "login.html";
+        }
+
+        // ====================== GET STATUS ======================
+
+        async function getRequestStatus() {
+
+            try {
+
+                const response = await fetch(
+
+                    `${BASE_URL}/request-status`,
+
+                    {
+
+                        method: "GET",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const result =
+                    await response.json();
+
+                const status =
+                    result.managerRequestStatus;
+
+                const role =
+                    result.role;
+
+                // ====================== ELEMENTS ======================
+
+                const badge =
+                    document.getElementById(
+                        "statusBadge"
+                    );
+
+                const icon =
+                    document.getElementById(
+                        "statusIcon"
+                    );
+
+                const title =
+                    document.getElementById(
+                        "statusTitle"
+                    );
+
+                const description =
+                    document.getElementById(
+                        "statusDescription"
+                    );
+
+                // ====================== APPROVED ======================
+
+                if (
+                    status === "approved" ||
+                    role === "manager"
+                ) {
+
+                    badge.className =
+                        "status-badge approved";
+
+                    badge.innerText =
+                        "APPROVED";
+
+                    icon.innerText =
+                        "✅";
+
+                    title.innerText =
+                        "Manager Access Approved";
+
+                    description.innerText =
+                        "Congratulations! Your manager access request has been approved by the admin.";
+                }
+
+                // ====================== REJECTED ======================
+
+                else if (
+                    status === "rejected"
+                ) {
+
+                    badge.className =
+                        "status-badge rejected";
+
+                    badge.innerText =
+                        "REJECTED";
+
+                    icon.innerText =
+                        "❌";
+
+                    title.innerText =
+                        "Request Rejected";
+
+                    description.innerText =
+                        "Your manager access request was rejected by the admin.";
+                }
+
+                // ====================== PENDING ======================
+
+                else if (
+                    status === "pending"
+                ) {
+
+                    badge.className =
+                        "status-badge pending";
+
+                    badge.innerText =
+                        "PENDING";
+
+                    icon.innerText =
+                        "⏳";
+
+                    title.innerText =
+                        "Approval Pending";
+
+                    description.innerText =
+                        "Your manager access request is currently under review.";
+                }
+
+                // ====================== NONE ======================
+
+                else {
+
+                    badge.className =
+                        "status-badge none";
+
+                    badge.innerText =
+                        "NO REQUEST";
+
+                    icon.innerText =
+                        "📩";
+
+                    title.innerText =
+                        "No Active Request";
+
+                    description.innerText =
+                        "You have not submitted a manager access request yet.";
+                }
+
+            } catch (error) {
+
+                alert(error.message);
+            }
+        }
+
+        // ====================== NAVIGATION ======================
+
+        function goProfile() {
+
+            window.location.href =
+                "profile.html";
+        }
+
+        function goHome() {
+
+            window.location.href =
+                "index.html";
+        }
+
+        // ====================== LOAD STATUS ======================
+
+        getRequestStatus();
+
+    </script>
+
+</body>
+
+</html>

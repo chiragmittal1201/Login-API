@@ -8,9 +8,94 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Auth System</title>
+    <title>Authentication System</title>
 
     <link rel="stylesheet" href="style.css">
+
+    <style>
+
+        .hero-box {
+
+            margin-top: 25px;
+
+            background: #111827;
+
+            padding: 25px;
+
+            border-radius: 16px;
+
+            text-align: left;
+
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .hero-box h2 {
+
+            margin-bottom: 10px;
+        }
+
+        .feature-list {
+
+            margin-top: 15px;
+
+            padding-left: 20px;
+        }
+
+        .feature-list li {
+
+            margin-bottom: 10px;
+
+            color: #d1d5db;
+        }
+
+        .status-box {
+
+            margin-top: 25px;
+
+            background: #111827;
+
+            padding: 20px;
+
+            border-radius: 16px;
+
+            display: none;
+        }
+
+        .status-box h2 {
+
+            margin-bottom: 10px;
+        }
+
+        .role-badge {
+
+            display: inline-block;
+
+            margin-top: 10px;
+
+            padding: 8px 15px;
+
+            border-radius: 20px;
+
+            font-weight: bold;
+
+            background: #2563eb;
+        }
+
+        .dashboard-btn {
+
+            background: #f59e0b;
+
+            color: white;
+        }
+
+        .profile-btn {
+
+            background: #8b5cf6;
+
+            color: white;
+        }
+
+    </style>
 
 </head>
 
@@ -21,12 +106,57 @@
         <h1>Authentication System</h1>
 
         <p>
-            JWT Authentication with Signup,
-            Login, Email Verification,
-            Password Reset and Protected Routes.
+            JWT Authentication with Role Based Access,
+            Email Verification, Password Reset,
+            Admin Approval Workflow and Protected Routes.
         </p>
 
-        <div class="btn-container">
+        <!-- ====================== HERO SECTION ====================== -->
+
+        <div class="hero-box">
+
+            <h2>Features</h2>
+
+            <ul class="feature-list">
+
+                <li>
+                    JWT Authentication
+                </li>
+
+                <li>
+                    Email Verification
+                </li>
+
+                <li>
+                    Forgot & Reset Password
+                </li>
+
+                <li>
+                    Role Based Access Control (RBAC)
+                </li>
+
+                <li>
+                    Admin / Manager / User Roles
+                </li>
+
+                <li>
+                    Manager Approval Workflow
+                </li>
+
+                <li>
+                    Protected Routes
+                </li>
+
+            </ul>
+
+        </div>
+
+        <!-- ====================== LOGIN BUTTONS ====================== -->
+
+        <div
+            class="btn-container"
+            id="guestButtons"
+        >
 
             <button
                 class="login-btn"
@@ -44,15 +174,66 @@
 
         </div>
 
-        <div class="user-box" id="userBox">
+        <!-- ====================== USER STATUS ====================== -->
 
-            <h2>Logged In</h2>
+        <div
+            class="status-box"
+            id="userBox"
+        >
+
+            <h2>
+                Logged In
+            </h2>
 
             <p id="welcomeText"></p>
+
+            <div
+                class="role-badge"
+                id="roleBadge"
+            >
+                user
+            </div>
+
+            <!-- ====================== DASHBOARD BUTTONS ====================== -->
+
+            <div
+                class="btn-container"
+                style="margin-top: 20px;"
+            >
+
+                <button
+                    class="profile-btn"
+                    onclick="goToProfile()"
+                >
+                    Profile
+                </button>
+
+                <button
+                    class="dashboard-btn"
+                    id="adminBtn"
+                    onclick="goToAdminDashboard()"
+                    style="display:none;"
+                >
+                    Admin Dashboard
+                </button>
+
+                <button
+                    class="dashboard-btn"
+                    id="managerBtn"
+                    onclick="goToManagerDashboard()"
+                    style="display:none;"
+                >
+                    Manager Dashboard
+                </button>
+
+            </div>
+
+            <!-- ====================== LOGOUT ====================== -->
 
             <button
                 class="logout-btn"
                 onclick="logout()"
+                style="margin-top: 20px;"
             >
                 Logout
             </button>
@@ -63,31 +244,96 @@
 
     <script>
 
+        // ====================== STORAGE ======================
+
+        const token =
+            localStorage.getItem("token");
+
+        const userName =
+            localStorage.getItem("userName");
+
+        const role =
+            localStorage.getItem("role");
+
         // ====================== CHECK LOGIN ======================
-
-        const token = localStorage.getItem("token");
-
-        const userName = localStorage.getItem("userName");
 
         if (token) {
 
-            document.getElementById("userBox")
-                .style.display = "block";
+            // Show user box
 
-            document.getElementById("welcomeText")
-                .innerText = `Welcome ${userName}`;
+            document.getElementById(
+                "userBox"
+            ).style.display = "block";
+
+            // Hide guest buttons
+
+            document.getElementById(
+                "guestButtons"
+            ).style.display = "none";
+
+            // Welcome text
+
+            document.getElementById(
+                "welcomeText"
+            ).innerText =
+                `Welcome ${userName}`;
+
+            // Role badge
+
+            document.getElementById(
+                "roleBadge"
+            ).innerText =
+                role || "user";
+
+            // ====================== ADMIN BUTTON ======================
+
+            if (role === "admin") {
+
+                document.getElementById(
+                    "adminBtn"
+                ).style.display = "block";
+            }
+
+            // ====================== MANAGER BUTTON ======================
+
+            if (role === "manager") {
+
+                document.getElementById(
+                    "managerBtn"
+                ).style.display = "block";
+            }
         }
 
-        // ====================== REDIRECT FUNCTIONS ======================
+        // ====================== NAVIGATION ======================
 
         function goToLogin() {
 
-            window.location.href = "login.html";
+            window.location.href =
+                "login.html";
         }
 
         function goToSignup() {
 
-            window.location.href = "signup.html";
+            window.location.href =
+                "signup.html";
+        }
+
+        function goToProfile() {
+
+            window.location.href =
+                "profile.html";
+        }
+
+        function goToAdminDashboard() {
+
+            window.location.href =
+                "admin-dashboard.html";
+        }
+
+        function goToManagerDashboard() {
+
+            window.location.href =
+                "manager-dashboard.html";
         }
 
         // ====================== LOGOUT ======================
@@ -97,6 +343,8 @@
             localStorage.removeItem("token");
 
             localStorage.removeItem("userName");
+
+            localStorage.removeItem("role");
 
             alert("Logged out successfully");
 

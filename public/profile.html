@@ -114,6 +114,22 @@
             display: flex;
 
             gap: 15px;
+
+            flex-wrap: wrap;
+        }
+
+        .manager-btn {
+
+            background: #8b5cf6;
+
+            color: white;
+        }
+
+        .dashboard-btn {
+
+            background: #f59e0b;
+
+            color: white;
         }
 
         @media(max-width: 768px) {
@@ -147,7 +163,7 @@
         <h1>User Profile</h1>
 
         <p>
-            Protected profile page with authenticated access.
+            Protected profile page with RBAC support.
         </p>
 
         <!-- ====================== PROFILE CARD ====================== -->
@@ -277,6 +293,40 @@
 
                 </div>
 
+                <!-- ROLE -->
+
+                <div class="detail-box">
+
+                    <div class="detail-title">
+                        Role
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="userRole"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+                <!-- REQUEST STATUS -->
+
+                <div class="detail-box">
+
+                    <div class="detail-title">
+                        Manager Request Status
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="requestStatus"
+                    >
+                        -
+                    </div>
+
+                </div>
+
             </div>
 
             <!-- ACTION BUTTONS -->
@@ -288,6 +338,39 @@
                     onclick="updateProfilePage()"
                 >
                     Update Profile
+                </button>
+
+                <!-- REQUEST BUTTON -->
+
+                <button
+                    class="manager-btn"
+                    id="requestManagerBtn"
+                    onclick="requestManagerAccess()"
+                    style="display:none;"
+                >
+                    Request Manager Access
+                </button>
+
+                <!-- ADMIN DASHBOARD -->
+
+                <button
+                    class="dashboard-btn"
+                    id="adminDashboardBtn"
+                    onclick="goAdminDashboard()"
+                    style="display:none;"
+                >
+                    Admin Dashboard
+                </button>
+
+                <!-- MANAGER DASHBOARD -->
+
+                <button
+                    class="dashboard-btn"
+                    id="managerDashboardBtn"
+                    onclick="goManagerDashboard()"
+                    style="display:none;"
+                >
+                    Manager Dashboard
                 </button>
 
                 <button
@@ -305,17 +388,20 @@
 
     <script>
 
-        const BASE_URL = "http://localhost:8000";
+        const BASE_URL =
+            "http://localhost:8000";
 
-        // ====================== TOKEN CHECK ======================
+        // ====================== TOKEN ======================
 
-        const token = localStorage.getItem("token");
+        const token =
+            localStorage.getItem("token");
 
         if (!token) {
 
             alert("Please login first");
 
-            window.location.href = "login.html";
+            window.location.href =
+                "login.html";
         }
 
         // ====================== GET PROFILE ======================
@@ -325,12 +411,17 @@
             try {
 
                 const response = await fetch(
+
                     `${BASE_URL}/profile`,
+
                     {
+
                         method: "GET",
 
                         headers: {
-                            "Content-Type": "application/json",
+
+                            "Content-Type":
+                                "application/json",
 
                             "Authorization":
                                 `Bearer ${token}`
@@ -338,76 +429,205 @@
                     }
                 );
 
-                // Unauthorized
-
                 if (response.status === 401) {
 
-                    localStorage.removeItem("token");
-
-                    alert("Session expired");
-
-                    window.location.href =
-                        "login.html";
+                    logout();
 
                     return;
                 }
 
-                const result = await response.json();
+                const result =
+                    await response.json();
 
-                const user = result.user;
+                const user =
+                    result.user;
 
                 // ====================== SHOW CARD ======================
 
-                document.getElementById("profileCard")
-                    .style.display = "block";
+                document.getElementById(
+                    "profileCard"
+                ).style.display = "block";
 
                 // ====================== AVATAR ======================
 
-                document.getElementById("avatar")
-                    .innerText =
-                    user.name.charAt(0).toUpperCase();
+                document.getElementById(
+                    "avatar"
+                ).innerText =
+                    user.name.charAt(0)
+                        .toUpperCase();
 
                 // ====================== USER INFO ======================
 
-                document.getElementById("userName")
-                    .innerText =
+                document.getElementById(
+                    "userName"
+                ).innerText =
                     user.name || "-";
 
-                document.getElementById("userEmail")
-                    .innerText =
+                document.getElementById(
+                    "userEmail"
+                ).innerText =
                     user.email || "-";
 
-                document.getElementById("userPhone")
-                    .innerText =
+                document.getElementById(
+                    "userPhone"
+                ).innerText =
                     user.phone || "-";
 
-                document.getElementById("userAddress")
-                    .innerText =
+                document.getElementById(
+                    "userAddress"
+                ).innerText =
                     user.address || "-";
 
-                document.getElementById("userState")
-                    .innerText =
+                document.getElementById(
+                    "userState"
+                ).innerText =
                     user.state || "-";
 
-                document.getElementById("userCity")
-                    .innerText =
+                document.getElementById(
+                    "userCity"
+                ).innerText =
                     user.city || "-";
 
-                document.getElementById("userVerified")
-                    .innerText =
-                    user.isVerified ? "Yes ✅" : "No ❌";
+                document.getElementById(
+                    "userVerified"
+                ).innerText =
+                    user.isVerified
+                    ? "Yes ✅"
+                    : "No ❌";
 
-                document.getElementById("verifiedAt")
-                    .innerText =
+                document.getElementById(
+                    "verifiedAt"
+                ).innerText =
                     user.verifiedAt
-                    ? new Date(user.verifiedAt)
-                        .toLocaleString()
+                    ? new Date(
+                        user.verifiedAt
+                    ).toLocaleString()
                     : "-";
+
+                // ====================== ROLE ======================
+
+                document.getElementById(
+                    "userRole"
+                ).innerText =
+                    user.role || "user";
+
+                // ====================== REQUEST STATUS ======================
+
+                document.getElementById(
+                    "requestStatus"
+                ).innerText =
+                    user.managerRequestStatus
+                    || "none";
+
+                // ====================== LOCAL STORAGE ROLE ======================
+
+                localStorage.setItem(
+                    "role",
+                    user.role
+                );
+
+                // ====================== USER BUTTON ======================
+
+                if (
+                    user.role === "user"
+                ) {
+
+                    document.getElementById(
+                        "requestManagerBtn"
+                    ).style.display =
+                        "block";
+                }
+
+                // ====================== ADMIN BUTTON ======================
+
+                if (
+                    user.role === "admin"
+                ) {
+
+                    document.getElementById(
+                        "adminDashboardBtn"
+                    ).style.display =
+                        "block";
+                }
+
+                // ====================== MANAGER BUTTON ======================
+
+                if (
+                    user.role === "manager"
+                ) {
+
+                    document.getElementById(
+                        "managerDashboardBtn"
+                    ).style.display =
+                        "block";
+                }
 
             } catch (error) {
 
                 alert(error.message);
             }
+        }
+
+        // ====================== REQUEST MANAGER ACCESS ======================
+
+        async function requestManagerAccess() {
+
+            try {
+
+                const response = await fetch(
+
+                    `${BASE_URL}/request-manager-role`,
+
+                    {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const result =
+                    await response.json();
+
+                alert(result.message);
+
+                window.location.reload();
+
+            } catch (error) {
+
+                alert(error.message);
+            }
+        }
+
+        // ====================== UPDATE PROFILE ======================
+
+        function updateProfilePage() {
+
+            window.location.href =
+                "update-profile.html";
+        }
+
+        // ====================== ADMIN DASHBOARD ======================
+
+        function goAdminDashboard() {
+
+            window.location.href =
+                "admin-dashboard.html";
+        }
+
+        // ====================== MANAGER DASHBOARD ======================
+
+        function goManagerDashboard() {
+
+            window.location.href =
+                "manager-dashboard.html";
         }
 
         // ====================== LOGOUT ======================
@@ -418,17 +638,12 @@
 
             localStorage.removeItem("userName");
 
+            localStorage.removeItem("role");
+
             alert("Logged out successfully");
 
-            window.location.href = "login.html";
-        }
-
-        // ====================== NAVIGATION ======================
-
-        function updateProfilePage() {
-
             window.location.href =
-                "update-profile.html";
+                "login.html";
         }
 
         // ====================== LOAD PROFILE ======================

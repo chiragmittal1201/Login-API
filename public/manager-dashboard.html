@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Manager Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+
+        .dashboard-box {
+
+            margin-top: 25px;
+
+            background: #111827;
+
+            padding: 25px;
+
+            border-radius: 16px;
+
+            text-align: left;
+
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .user-card {
+
+            background: #1f2937;
+
+            padding: 20px;
+
+            border-radius: 14px;
+
+            margin-bottom: 20px;
+        }
+
+        .user-card h3 {
+
+            margin-bottom: 10px;
+        }
+
+        .user-card p {
+
+            margin-bottom: 8px;
+
+            color: #d1d5db;
+        }
+
+        .badge {
+
+            display: inline-block;
+
+            padding: 5px 12px;
+
+            border-radius: 20px;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+            margin-top: 10px;
+
+            background: #2563eb;
+        }
+
+        .action-buttons {
+
+            margin-top: 15px;
+        }
+
+        .reset-btn {
+
+            background: #f59e0b;
+
+            color: white;
+        }
+
+        .top-buttons {
+
+            margin-top: 20px;
+
+            display: flex;
+
+            gap: 15px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Manager Dashboard</h1>
+
+        <p>
+            Manager control panel for user assistance.
+        </p>
+
+        <!-- ====================== ACTIONS ====================== -->
+
+        <div class="top-buttons">
+
+            <button
+                class="primary-btn"
+                onclick="goProfile()"
+            >
+                Profile
+            </button>
+
+            <button
+                class="logout-btn"
+                onclick="logout()"
+            >
+                Logout
+            </button>
+
+        </div>
+
+        <!-- ====================== USERS ====================== -->
+
+        <div
+            class="dashboard-box"
+            id="usersContainer"
+        >
+
+            Loading users...
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const BASE_URL =
+            "http://localhost:8000";
+
+        const token =
+            localStorage.getItem("token");
+
+        const role =
+            localStorage.getItem("role");
+
+        // ====================== ROLE CHECK ======================
+
+        if (
+            !token ||
+            (
+                role !== "manager" &&
+                role !== "admin"
+            )
+        ) {
+
+            alert(
+                "Manager access required"
+            );
+
+            window.location.href =
+                "login.html";
+        }
+
+        // ====================== GET USERS ======================
+
+        async function getUsers() {
+
+            try {
+
+                const response = await fetch(
+
+                    `${BASE_URL}/all-users`,
+
+                    {
+
+                        method: "GET",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const result =
+                    await response.json();
+
+                const users =
+                    result.users;
+
+                let html = "";
+
+                users.forEach(user => {
+
+                    html += `
+
+                        <div class="user-card">
+
+                            <h3>
+                                ${user.name}
+                            </h3>
+
+                            <p>
+                                Email:
+                                ${user.email}
+                            </p>
+
+                            <p>
+                                Phone:
+                                ${user.phone}
+                            </p>
+
+                            <div class="badge">
+                                ${user.role}
+                            </div>
+
+                            <div class="action-buttons">
+
+                                <button
+                                    class="reset-btn"
+                                    onclick="sendResetLink('${user._id}')"
+                                >
+                                    Send Reset Link
+                                </button>
+
+                            </div>
+
+                        </div>
+                    `;
+                });
+
+                document.getElementById(
+                    "usersContainer"
+                ).innerHTML = html;
+
+            } catch (error) {
+
+                alert(error.message);
+            }
+        }
+
+        // ====================== SEND RESET LINK ======================
+
+        async function sendResetLink(id) {
+
+            try {
+
+                const response = await fetch(
+
+                    `${BASE_URL}/manager/send-reset-link/${id}`,
+
+                    {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const result =
+                    await response.json();
+
+                alert(result.message);
+
+            } catch (error) {
+
+                alert(error.message);
+            }
+        }
+
+        // ====================== PROFILE ======================
+
+        function goProfile() {
+
+            window.location.href =
+                "profile.html";
+        }
+
+        // ====================== LOGOUT ======================
+
+        function logout() {
+
+            localStorage.clear();
+
+            alert("Logged out");
+
+            window.location.href =
+                "login.html";
+        }
+
+        // ====================== LOAD ======================
+
+        getUsers();
+
+    </script>
+
+</body>
+
+</html>
