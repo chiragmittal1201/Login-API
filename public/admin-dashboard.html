@@ -14,113 +14,115 @@
 
     <style>
 
-        .dashboard-box {
+        .top-bar {
 
-            margin-top: 25px;
+            display: flex;
 
-            background: #111827;
+            gap: 15px;
 
-            padding: 25px;
+            flex-wrap: wrap;
 
-            border-radius: 16px;
+            margin-bottom: 25px;
+        }
 
-            text-align: left;
+        .top-bar input,
+        .top-bar select {
 
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
+            flex: 1;
+
+            min-width: 180px;
+
+            padding: 12px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            outline: none;
+
+            font-size: 15px;
         }
 
         .user-card {
 
-            background: #1f2937;
+            background: #111827;
 
             padding: 20px;
 
-            border-radius: 14px;
+            border-radius: 15px;
 
             margin-bottom: 20px;
+
+            border: 1px solid #374151;
         }
 
         .user-card h3 {
 
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+
+            color: #60a5fa;
         }
 
-        .user-card p {
+        .user-info {
 
             margin-bottom: 8px;
 
             color: #d1d5db;
         }
 
-        .badge {
-
-            display: inline-block;
-
-            padding: 5px 12px;
-
-            border-radius: 20px;
-
-            font-size: 14px;
+        .role {
 
             font-weight: bold;
 
-            margin-top: 10px;
+            color: #facc15;
         }
 
-        .admin-badge {
+        .status {
 
-            background: #dc2626;
+            font-weight: bold;
         }
 
-        .manager-badge {
+        .pending {
 
-            background: #7c3aed;
+            color: orange;
         }
 
-        .user-badge {
+        .approved {
 
-            background: #2563eb;
+            color: #10b981;
         }
 
-        .action-buttons {
+        .rejected {
 
-            margin-top: 15px;
+            color: #ef4444;
+        }
+
+        .none {
+
+            color: #9ca3af;
+        }
+
+        .btn-group {
 
             display: flex;
 
             gap: 10px;
 
             flex-wrap: wrap;
+
+            margin-top: 18px;
         }
 
-        .approve-btn {
+        .btn-group button {
 
-            background: #10b981;
-
-            color: white;
+            flex: 1;
         }
 
-        .reject-btn {
+        .section-title {
 
-            background: #ef4444;
+            margin-bottom: 20px;
 
-            color: white;
-        }
-
-        .password-btn {
-
-            background: #f59e0b;
-
-            color: white;
-        }
-
-        .top-buttons {
-
-            margin-top: 20px;
-
-            display: flex;
-
-            gap: 15px;
+            margin-top: 10px;
         }
 
     </style>
@@ -134,37 +136,98 @@
         <h1>Admin Dashboard</h1>
 
         <p>
-            Full administrative control panel.
+            Manage users, approve managers,
+            filter users and control access.
         </p>
 
-        <!-- ====================== ACTIONS ====================== -->
+        <!-- ====================== FILTER BAR ====================== -->
 
-        <div class="top-buttons">
+        <div class="top-bar">
+
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Search Name / Email / Phone"
+            >
+
+            <select id="roleFilter">
+
+                <option value="">
+                    All Roles
+                </option>
+
+                <option value="user">
+                    User
+                </option>
+
+                <option value="manager">
+                    Manager
+                </option>
+
+                <option value="admin">
+                    Admin
+                </option>
+
+            </select>
+
+            <select id="statusFilter">
+
+                <option value="">
+                    All Status
+                </option>
+
+                <option value="pending">
+                    Pending
+                </option>
+
+                <option value="approved">
+                    Approved
+                </option>
+
+                <option value="rejected">
+                    Rejected
+                </option>
+
+                <option value="none">
+                    None
+                </option>
+
+            </select>
 
             <button
                 class="primary-btn"
-                onclick="goProfile()"
+                onclick="fetchUsers()"
             >
-                Profile
-            </button>
-
-            <button
-                class="logout-btn"
-                onclick="logout()"
-            >
-                Logout
+                Search
             </button>
 
         </div>
 
         <!-- ====================== USERS ====================== -->
 
-        <div
-            class="dashboard-box"
-            id="usersContainer"
-        >
+        <h2 class="section-title">
+            Users List
+        </h2>
 
-            Loading users...
+        <div id="usersContainer"></div>
+
+        <!-- ====================== NAVIGATION ====================== -->
+
+        <div class="btn-container">
+
+            <button
+                class="login-btn"
+                onclick="goHome()"
+            >
+                Home
+            </button>
+
+            <button
+                class="signup-btn"
+                onclick="logout()"
+            >
+                Logout
+            </button>
 
         </div>
 
@@ -178,146 +241,187 @@
         const token =
             localStorage.getItem("token");
 
-        const role =
-            localStorage.getItem("role");
+        // ====================== TOKEN CHECK ======================
 
-        // ====================== ROLE CHECK ======================
+        if (!token) {
 
-        if (!token || role !== "admin") {
-
-            alert("Admin access required");
+            alert("Please login first");
 
             window.location.href =
                 "login.html";
         }
 
-        // ====================== GET USERS ======================
+        // ====================== FETCH USERS ======================
 
-        async function getUsers() {
+        async function fetchUsers() {
 
             try {
 
-                const response = await fetch(
+                const search =
+                    document.getElementById(
+                        "searchInput"
+                    ).value;
 
-                    `${BASE_URL}/all-users`,
+                const role =
+                    document.getElementById(
+                        "roleFilter"
+                    ).value;
 
-                    {
+                const status =
+                    document.getElementById(
+                        "statusFilter"
+                    ).value;
 
-                        method: "GET",
+                // ====================== QUERY ======================
 
-                        headers: {
+                const query =
+                    new URLSearchParams({
 
-                            "Content-Type":
-                                "application/json",
+                        search,
+                        role,
+                        status
 
-                            "Authorization":
-                                `Bearer ${token}`
+                    }).toString();
+
+                // ====================== API ======================
+
+                const response =
+                    await fetch(
+
+                        `${BASE_URL}/admin/all-users?${query}`,
+
+                        {
+
+                            method: "GET",
+
+                            headers: {
+
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
                         }
-                    }
-                );
+                    );
 
                 const result =
                     await response.json();
 
-                const users =
-                    result.users;
+                // ====================== AUTH FAIL ======================
 
-                let html = "";
+                if (
+                    response.status === 401
+                ) {
 
-                users.forEach(user => {
+                    localStorage.clear();
 
-                    let badgeClass =
-                        "user-badge";
+                    alert("Session expired");
 
-                    if (
-                        user.role === "admin"
-                    ) {
+                    window.location.href =
+                        "login.html";
 
-                        badgeClass =
-                            "admin-badge";
-                    }
+                    return;
+                }
 
-                    else if (
-                        user.role ===
-                        "manager"
-                    ) {
+                // ====================== CONTAINER ======================
 
-                        badgeClass =
-                            "manager-badge";
-                    }
+                const container =
+                    document.getElementById(
+                        "usersContainer"
+                    );
 
-                    html += `
+                container.innerHTML = "";
 
-                        <div class="user-card">
+                // ====================== EMPTY ======================
 
-                            <h3>
-                                ${user.name}
-                            </h3>
+                if (
+                    !result.users ||
+                    result.users.length === 0
+                ) {
 
-                            <p>
-                                Email:
-                                ${user.email}
-                            </p>
+                    container.innerHTML = `
+                        <p>No users found</p>
+                    `;
 
-                            <p>
-                                Phone:
-                                ${user.phone}
-                            </p>
+                    return;
+                }
 
-                            <p>
-                                Request Status:
-                                ${user.managerRequestStatus}
-                            </p>
+                // ====================== USERS LOOP ======================
 
-                            <div class="badge ${badgeClass}">
+                result.users.forEach(user => {
+
+                    const div =
+                        document.createElement("div");
+
+                    div.classList.add(
+                        "user-card"
+                    );
+
+                    div.innerHTML = `
+
+                        <h3>
+                            ${user.name}
+                        </h3>
+
+                        <div class="user-info">
+                            Email:
+                            ${user.email}
+                        </div>
+
+                        <div class="user-info">
+                            Phone:
+                            ${user.phone}
+                        </div>
+
+                        <div class="user-info">
+                            Role:
+                            <span class="role">
                                 ${user.role}
-                            </div>
+                            </span>
+                        </div>
 
-                            <div class="action-buttons">
+                        <div class="user-info">
+                            Status:
+                            <span class="
+                                status
+                                ${user.managerRequestStatus}
+                            ">
+                                ${user.managerRequestStatus}
+                            </span>
+                        </div>
 
-                                ${
-                                    user.managerRequestStatus ===
-                                    "pending"
+                        <div class="btn-group">
 
-                                    ?
+                            <button
+                                class="primary-btn"
+                                onclick="approveManager(
+                                    '${user._id}'
+                                )"
+                            >
+                                Approve
+                            </button>
 
-                                    `
-                                    <button
-                                        class="approve-btn"
-                                        onclick="approveManager('${user._id}')"
-                                    >
-                                        Approve Manager
-                                    </button>
+                            <button
+                                class="logout-btn"
+                                onclick="rejectManager(
+                                    '${user._id}'
+                                )"
+                            >
+                                Reject
+                            </button>
 
-                                    <button
-                                        class="reject-btn"
-                                        onclick="rejectManager('${user._id}')"
-                                    >
-                                        Reject
-                                    </button>
-                                    `
-
-                                    :
-
-                                    ""
-                                }
-
-                                <button
-                                    class="password-btn"
-                                    onclick="changePassword('${user._id}')"
-                                >
-                                    Change Password
-                                </button>
-
-                            </div>
+                            <button
+                                class="signup-btn"
+                                onclick="changePassword(
+                                    '${user._id}'
+                                )"
+                            >
+                                Change Password
+                            </button>
 
                         </div>
                     `;
-                });
 
-                document.getElementById(
-                    "usersContainer"
-                ).innerHTML = html;
+                    container.appendChild(div);
+                });
 
             } catch (error) {
 
@@ -331,31 +435,29 @@
 
             try {
 
-                const response = await fetch(
+                const response =
+                    await fetch(
 
-                    `${BASE_URL}/approve-manager/${id}`,
+                        `${BASE_URL}/admin/approve-manager/${id}`,
 
-                    {
+                        {
 
-                        method: "PUT",
+                            method: "PUT",
 
-                        headers: {
+                            headers: {
 
-                            "Content-Type":
-                                "application/json",
-
-                            "Authorization":
-                                `Bearer ${token}`
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
                         }
-                    }
-                );
+                    );
 
                 const result =
                     await response.json();
 
                 alert(result.message);
 
-                getUsers();
+                fetchUsers();
 
             } catch (error) {
 
@@ -369,31 +471,29 @@
 
             try {
 
-                const response = await fetch(
+                const response =
+                    await fetch(
 
-                    `${BASE_URL}/reject-manager/${id}`,
+                        `${BASE_URL}/admin/reject-manager/${id}`,
 
-                    {
+                        {
 
-                        method: "PUT",
+                            method: "PUT",
 
-                        headers: {
+                            headers: {
 
-                            "Content-Type":
-                                "application/json",
-
-                            "Authorization":
-                                `Bearer ${token}`
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
                         }
-                    }
-                );
+                    );
 
                 const result =
                     await response.json();
 
                 alert(result.message);
 
-                getUsers();
+                fetchUsers();
 
             } catch (error) {
 
@@ -405,41 +505,43 @@
 
         async function changePassword(id) {
 
-            const newPassword =
-                prompt(
-                    "Enter new password"
-                );
-
-            if (!newPassword) {
-
-                return;
-            }
-
             try {
 
-                const response = await fetch(
+                const newPassword =
+                    prompt(
+                        "Enter New Password"
+                    );
 
-                    `${BASE_URL}/admin/change-password/${id}`,
+                if (!newPassword) {
 
-                    {
+                    return;
+                }
 
-                        method: "PUT",
+                const response =
+                    await fetch(
 
-                        headers: {
+                        `${BASE_URL}/admin/change-password/${id}`,
 
-                            "Content-Type":
-                                "application/json",
+                        {
 
-                            "Authorization":
-                                `Bearer ${token}`
-                        },
+                            method: "PUT",
 
-                        body: JSON.stringify({
+                            headers: {
 
-                            newPassword
-                        })
-                    }
-                );
+                                "Content-Type":
+                                    "application/json",
+
+                                "Authorization":
+                                    `Bearer ${token}`
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    newPassword
+                                })
+                        }
+                    );
 
                 const result =
                     await response.json();
@@ -452,12 +554,12 @@
             }
         }
 
-        // ====================== PROFILE ======================
+        // ====================== NAVIGATION ======================
 
-        function goProfile() {
+        function goHome() {
 
             window.location.href =
-                "profile.html";
+                "index.html";
         }
 
         // ====================== LOGOUT ======================
@@ -472,9 +574,9 @@
                 "login.html";
         }
 
-        // ====================== LOAD ======================
+        // ====================== INITIAL LOAD ======================
 
-        getUsers();
+        fetchUsers();
 
     </script>
 

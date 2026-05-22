@@ -351,6 +351,15 @@
                     Request Manager Access
                 </button>
 
+                <!-- REQUEST STATUS -->
+
+                <button
+                    class="dashboard-btn"
+                    onclick="goRequestStatus()"
+                >
+                    Request Status
+                </button>
+
                 <!-- ADMIN DASHBOARD -->
 
                 <button
@@ -410,24 +419,25 @@
 
             try {
 
-                const response = await fetch(
+                const response =
+                    await fetch(
 
-                    `${BASE_URL}/profile`,
+                        `${BASE_URL}/profile`,
 
-                    {
+                        {
 
-                        method: "GET",
+                            method: "GET",
 
-                        headers: {
+                            headers: {
 
-                            "Content-Type":
-                                "application/json",
+                                "Content-Type":
+                                    "application/json",
 
-                            "Authorization":
-                                `Bearer ${token}`
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
                         }
-                    }
-                );
+                    );
 
                 if (response.status === 401) {
 
@@ -519,7 +529,7 @@
                     user.managerRequestStatus
                     || "none";
 
-                // ====================== LOCAL STORAGE ROLE ======================
+                // ====================== SAVE ROLE ======================
 
                 localStorage.setItem(
                     "role",
@@ -574,24 +584,25 @@
 
             try {
 
-                const response = await fetch(
+                const response =
+                    await fetch(
 
-                    `${BASE_URL}/request-manager-role`,
+                        `${BASE_URL}/request/request-manager-role`,
 
-                    {
+                        {
 
-                        method: "POST",
+                            method: "POST",
 
-                        headers: {
+                            headers: {
 
-                            "Content-Type":
-                                "application/json",
+                                "Content-Type":
+                                    "application/json",
 
-                            "Authorization":
-                                `Bearer ${token}`
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
                         }
-                    }
-                );
+                    );
 
                 const result =
                     await response.json();
@@ -612,6 +623,14 @@
 
             window.location.href =
                 "update-profile.html";
+        }
+
+        // ====================== REQUEST STATUS ======================
+
+        function goRequestStatus() {
+
+            window.location.href =
+                "manager-request-status.html";
         }
 
         // ====================== ADMIN DASHBOARD ======================

@@ -2,9 +2,21 @@ const express = require("express");
 
 const router = express.Router();
 
+// ====================== IMPORTS ======================
+
+const User =
+    require("../models/User");
+
+const authorizeRoles =
+    require("../middleware/roleMiddleware");
+
+const auth =
+    require("../middleware/authMiddleware");
+
 // ====================== REQUEST MANAGER ROLE ======================
 
 router.post(
+
     "/request-manager-role",
 
     auth,
@@ -15,23 +27,32 @@ router.post(
 
         try {
 
-            const user = await User.findById(
-                req.user._id
-            );
+            // ====================== FIND USER ======================
+
+            const user =
+                await User.findById(
+                    req.user._id
+                );
+
+            // ====================== USER CHECK ======================
 
             if (!user) {
 
                 return res.status(404).json({
 
-                    message: "User not found"
+                    message:
+                        "User not found"
                 });
             }
 
-            // Already manager
+            // ====================== ALREADY MANAGER/ADMIN ======================
 
             if (
+
                 user.role === "manager" ||
+
                 user.role === "admin"
+
             ) {
 
                 return res.status(400).json({
@@ -41,11 +62,13 @@ router.post(
                 });
             }
 
-            // Already requested
+            // ====================== REQUEST ALREADY PENDING ======================
 
             if (
+
                 user.managerRequestStatus ===
                 "pending"
+
             ) {
 
                 return res.status(400).json({
@@ -55,12 +78,14 @@ router.post(
                 });
             }
 
-            // Request role
+            // ====================== UPDATE REQUEST ======================
 
             user.managerRequestStatus =
                 "pending";
 
             await user.save();
+
+            // ====================== RESPONSE ======================
 
             return res.json({
 
@@ -74,7 +99,8 @@ router.post(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
@@ -83,6 +109,7 @@ router.post(
 // ====================== CHECK REQUEST STATUS ======================
 
 router.get(
+
     "/request-status",
 
     auth,
@@ -91,15 +118,32 @@ router.get(
 
         try {
 
-            const user = await User.findById(
-                req.user._id
-            );
+            // ====================== FIND USER ======================
+
+            const user =
+                await User.findById(
+                    req.user._id
+                );
+
+            // ====================== USER CHECK ======================
+
+            if (!user) {
+
+                return res.status(404).json({
+
+                    message:
+                        "User not found"
+                });
+            }
+
+            // ====================== RESPONSE ======================
 
             return res.json({
 
                 success: true,
 
-                role: user.role,
+                role:
+                    user.role,
 
                 managerRequestStatus:
                     user.managerRequestStatus
@@ -109,7 +153,8 @@ router.get(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }

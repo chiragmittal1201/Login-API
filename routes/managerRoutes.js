@@ -2,16 +2,40 @@ const express = require("express");
 
 const crypto = require("crypto");
 
+const buildUserFilter =
+    require("../utils/userFilter");
+
+const authorizeRoles =
+    require("../middleware/roleMiddleware");
+
+const auth =
+    require("../middleware/authMiddleware");
+
+// ====================== IMPORTS FROM INDEX ======================
+
+const User =
+    require("../models/User");
+
+const {
+
+    transporter
+
+} = require("../index");
+
 const router = express.Router();
 
 // ====================== MANAGER DASHBOARD ======================
 
 router.get(
+
     "/manager-dashboard",
 
     auth,
 
-    authorizeRoles("manager", "admin"),
+    authorizeRoles(
+        "manager",
+        "admin"
+    ),
 
     async (req, res) => {
 
@@ -30,18 +54,34 @@ router.get(
 // ====================== VIEW USERS ======================
 
 router.get(
+
     "/view-users",
 
     auth,
 
-    authorizeRoles("manager", "admin"),
+    authorizeRoles(
+        "manager",
+        "admin"
+    ),
 
     async (req, res) => {
 
         try {
 
-            const users = await User.find()
-                .select("-password");
+            // ====================== BUILD FILTER ======================
+
+            const filter =
+                buildUserFilter(
+                    req.query
+                );
+
+            // ====================== GET USERS ======================
+
+            const users =
+                await User.find(filter)
+                    .select("-password");
+
+            // ====================== RESPONSE ======================
 
             return res.json({
 
@@ -56,7 +96,8 @@ router.get(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
@@ -65,42 +106,53 @@ router.get(
 // ====================== SEND RESET LINK ======================
 
 router.post(
+
     "/send-reset-link/:id",
 
     auth,
 
-    authorizeRoles("manager", "admin"),
+    authorizeRoles(
+        "manager",
+        "admin"
+    ),
 
     async (req, res) => {
 
         try {
 
-            const user = await User.findById(
-                req.params.id
-            );
+            // ====================== FIND USER ======================
+
+            const user =
+                await User.findById(
+                    req.params.id
+                );
+
+            // ====================== USER CHECK ======================
 
             if (!user) {
 
                 return res.status(404).json({
 
-                    message: "User not found"
+                    message:
+                        "User not found"
                 });
             }
 
-            // Generate token
+            // ====================== GENERATE TOKEN ======================
 
             const resetToken =
                 crypto.randomBytes(32)
                     .toString("hex");
 
-            // Hash token
+            // ====================== HASH TOKEN ======================
 
-            const hashedToken = crypto
-                .createHash("sha256")
-                .update(resetToken)
-                .digest("hex");
+            const hashedToken =
+                crypto
+                    .createHash("sha256")
+                    .update(resetToken)
+                    .digest("hex");
 
-            // Save token
+            // ====================== SAVE TOKEN ======================
 
             user.resetPasswordToken =
                 hashedToken;
@@ -110,23 +162,26 @@ router.post(
 
             await user.save();
 
-            // Reset link
+            // ====================== RESET LINK ======================
 
             const resetLink =
-                `http://localhost:8000/reset-password/${resetToken}`;
+                `http://127.0.0.1:5500/public/reset-password.html?token=${resetToken}`;
 
-            // Send email
+            // ====================== SEND EMAIL ======================
 
             await transporter.sendMail({
 
-                from: process.env.EMAIL_USER,
+                from:
+                    process.env.EMAIL_USER,
 
-                to: user.email,
+                to:
+                    user.email,
 
                 subject:
                     "Password Reset Request",
 
                 html: `
+
                     <h2>Password Reset</h2>
 
                     <p>
@@ -138,6 +193,8 @@ router.post(
                     </a>
                 `
             });
+
+            // ====================== RESPONSE ======================
 
             return res.json({
 
@@ -151,7 +208,8 @@ router.post(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }

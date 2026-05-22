@@ -14,80 +14,110 @@
 
     <style>
 
-        .dashboard-box {
+        .top-bar {
 
-            margin-top: 25px;
+            display: flex;
 
-            background: #111827;
+            gap: 15px;
 
-            padding: 25px;
+            flex-wrap: wrap;
 
-            border-radius: 16px;
+            margin-bottom: 25px;
+        }
 
-            text-align: left;
+        .top-bar input,
+        .top-bar select {
 
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
+            flex: 1;
+
+            min-width: 180px;
+
+            padding: 12px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            outline: none;
+
+            font-size: 15px;
         }
 
         .user-card {
 
-            background: #1f2937;
+            background: #111827;
 
             padding: 20px;
 
-            border-radius: 14px;
+            border-radius: 15px;
 
             margin-bottom: 20px;
+
+            border: 1px solid #374151;
         }
 
         .user-card h3 {
 
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+
+            color: #60a5fa;
         }
 
-        .user-card p {
+        .user-info {
 
             margin-bottom: 8px;
 
             color: #d1d5db;
         }
 
-        .badge {
+        .role {
 
-            display: inline-block;
-
-            padding: 5px 12px;
-
-            border-radius: 20px;
-
-            font-size: 14px;
+            color: #facc15;
 
             font-weight: bold;
-
-            margin-top: 10px;
-
-            background: #2563eb;
         }
 
-        .action-buttons {
+        .status {
 
-            margin-top: 15px;
+            font-weight: bold;
         }
 
-        .reset-btn {
+        .pending {
 
-            background: #f59e0b;
-
-            color: white;
+            color: orange;
         }
 
-        .top-buttons {
+        .approved {
 
-            margin-top: 20px;
+            color: #10b981;
+        }
+
+        .rejected {
+
+            color: #ef4444;
+        }
+
+        .none {
+
+            color: #9ca3af;
+        }
+
+        .btn-group {
 
             display: flex;
 
-            gap: 15px;
+            gap: 10px;
+
+            flex-wrap: wrap;
+
+            margin-top: 18px;
+        }
+
+        .section-title {
+
+            margin-bottom: 20px;
+
+            margin-top: 10px;
         }
 
     </style>
@@ -101,37 +131,74 @@
         <h1>Manager Dashboard</h1>
 
         <p>
-            Manager control panel for user assistance.
+            View users, search records
+            and send password reset links.
         </p>
 
-        <!-- ====================== ACTIONS ====================== -->
+        <!-- ====================== FILTER BAR ====================== -->
 
-        <div class="top-buttons">
+        <div class="top-bar">
+
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Search Name / Email / Phone"
+            >
+
+            <select id="roleFilter">
+
+                <option value="">
+                    All Roles
+                </option>
+
+                <option value="user">
+                    User
+                </option>
+
+                <option value="manager">
+                    Manager
+                </option>
+
+                <option value="admin">
+                    Admin
+                </option>
+
+            </select>
 
             <button
                 class="primary-btn"
-                onclick="goProfile()"
+                onclick="fetchUsers()"
             >
-                Profile
-            </button>
-
-            <button
-                class="logout-btn"
-                onclick="logout()"
-            >
-                Logout
+                Search
             </button>
 
         </div>
 
         <!-- ====================== USERS ====================== -->
 
-        <div
-            class="dashboard-box"
-            id="usersContainer"
-        >
+        <h2 class="section-title">
+            Users List
+        </h2>
 
-            Loading users...
+        <div id="usersContainer"></div>
+
+        <!-- ====================== NAVIGATION ====================== -->
+
+        <div class="btn-container">
+
+            <button
+                class="login-btn"
+                onclick="goHome()"
+            >
+                Home
+            </button>
+
+            <button
+                class="signup-btn"
+                onclick="logout()"
+            >
+                Logout
+            </button>
 
         </div>
 
@@ -145,102 +212,163 @@
         const token =
             localStorage.getItem("token");
 
-        const role =
-            localStorage.getItem("role");
+        // ====================== TOKEN CHECK ======================
 
-        // ====================== ROLE CHECK ======================
+        if (!token) {
 
-        if (
-            !token ||
-            (
-                role !== "manager" &&
-                role !== "admin"
-            )
-        ) {
-
-            alert(
-                "Manager access required"
-            );
+            alert("Please login first");
 
             window.location.href =
                 "login.html";
         }
 
-        // ====================== GET USERS ======================
+        // ====================== FETCH USERS ======================
 
-        async function getUsers() {
+        async function fetchUsers() {
 
             try {
 
-                const response = await fetch(
+                const search =
+                    document.getElementById(
+                        "searchInput"
+                    ).value;
 
-                    `${BASE_URL}/all-users`,
+                const role =
+                    document.getElementById(
+                        "roleFilter"
+                    ).value;
 
-                    {
+                // ====================== QUERY ======================
 
-                        method: "GET",
+                const query =
+                    new URLSearchParams({
 
-                        headers: {
+                        search,
+                        role
 
-                            "Content-Type":
-                                "application/json",
+                    }).toString();
 
-                            "Authorization":
-                                `Bearer ${token}`
+                // ====================== API ======================
+
+                const response =
+                    await fetch(
+
+                        `${BASE_URL}/manager/view-users?${query}`,
+
+                        {
+
+                            method: "GET",
+
+                            headers: {
+
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
                         }
-                    }
-                );
+                    );
 
                 const result =
                     await response.json();
 
-                const users =
-                    result.users;
+                // ====================== AUTH FAIL ======================
 
-                let html = "";
+                if (
+                    response.status === 401
+                ) {
 
-                users.forEach(user => {
+                    localStorage.clear();
 
-                    html += `
+                    alert("Session expired");
 
-                        <div class="user-card">
+                    window.location.href =
+                        "login.html";
 
-                            <h3>
-                                ${user.name}
-                            </h3>
+                    return;
+                }
 
-                            <p>
-                                Email:
-                                ${user.email}
-                            </p>
+                // ====================== CONTAINER ======================
 
-                            <p>
-                                Phone:
-                                ${user.phone}
-                            </p>
+                const container =
+                    document.getElementById(
+                        "usersContainer"
+                    );
 
-                            <div class="badge">
+                container.innerHTML = "";
+
+                // ====================== EMPTY ======================
+
+                if (
+                    !result.users ||
+                    result.users.length === 0
+                ) {
+
+                    container.innerHTML = `
+                        <p>No users found</p>
+                    `;
+
+                    return;
+                }
+
+                // ====================== USERS LOOP ======================
+
+                result.users.forEach(user => {
+
+                    const div =
+                        document.createElement("div");
+
+                    div.classList.add(
+                        "user-card"
+                    );
+
+                    div.innerHTML = `
+
+                        <h3>
+                            ${user.name}
+                        </h3>
+
+                        <div class="user-info">
+                            Email:
+                            ${user.email}
+                        </div>
+
+                        <div class="user-info">
+                            Phone:
+                            ${user.phone}
+                        </div>
+
+                        <div class="user-info">
+                            Role:
+                            <span class="role">
                                 ${user.role}
-                            </div>
+                            </span>
+                        </div>
 
-                            <div class="action-buttons">
+                        <div class="user-info">
+                            Status:
+                            <span class="
+                                status
+                                ${user.managerRequestStatus}
+                            ">
+                                ${user.managerRequestStatus}
+                            </span>
+                        </div>
 
-                                <button
-                                    class="reset-btn"
-                                    onclick="sendResetLink('${user._id}')"
-                                >
-                                    Send Reset Link
-                                </button>
+                        <div class="btn-group">
 
-                            </div>
+                            <button
+                                class="primary-btn"
+                                onclick="sendResetLink(
+                                    '${user._id}'
+                                )"
+                            >
+                                Send Reset Link
+                            </button>
 
                         </div>
                     `;
-                });
 
-                document.getElementById(
-                    "usersContainer"
-                ).innerHTML = html;
+                    container.appendChild(div);
+                });
 
             } catch (error) {
 
@@ -254,24 +382,22 @@
 
             try {
 
-                const response = await fetch(
+                const response =
+                    await fetch(
 
-                    `${BASE_URL}/manager/send-reset-link/${id}`,
+                        `${BASE_URL}/manager/send-reset-link/${id}`,
 
-                    {
+                        {
 
-                        method: "POST",
+                            method: "POST",
 
-                        headers: {
+                            headers: {
 
-                            "Content-Type":
-                                "application/json",
-
-                            "Authorization":
-                                `Bearer ${token}`
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
                         }
-                    }
-                );
+                    );
 
                 const result =
                     await response.json();
@@ -284,12 +410,12 @@
             }
         }
 
-        // ====================== PROFILE ======================
+        // ====================== NAVIGATION ======================
 
-        function goProfile() {
+        function goHome() {
 
             window.location.href =
-                "profile.html";
+                "index.html";
         }
 
         // ====================== LOGOUT ======================
@@ -304,9 +430,9 @@
                 "login.html";
         }
 
-        // ====================== LOAD ======================
+        // ====================== INITIAL LOAD ======================
 
-        getUsers();
+        fetchUsers();
 
     </script>
 

@@ -2,11 +2,26 @@ const express = require("express");
 
 const bcrypt = require("bcryptjs");
 
+const buildUserFilter =
+    require("../utils/userFilter");
+
+const authorizeRoles =
+    require("../middleware/roleMiddleware");
+
+    const auth =
+    require("../middleware/authMiddleware");
+
+// ====================== IMPORTS FROM INDEX ======================
+
+const User =
+    require("../models/User");
+
 const router = express.Router();
 
 // ====================== ADMIN DASHBOARD ======================
 
 router.get(
+
     "/admin-dashboard",
 
     auth,
@@ -30,6 +45,7 @@ router.get(
 // ====================== GET ALL USERS ======================
 
 router.get(
+
     "/all-users",
 
     auth,
@@ -40,8 +56,20 @@ router.get(
 
         try {
 
-            const users = await User.find()
-                .select("-password");
+            // ====================== BUILD FILTER ======================
+
+            const filter =
+                buildUserFilter(
+                    req.query
+                );
+
+            // ====================== GET USERS ======================
+
+            const users =
+                await User.find(filter)
+                    .select("-password");
+
+            // ====================== RESPONSE ======================
 
             return res.json({
 
@@ -56,7 +84,8 @@ router.get(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
@@ -65,6 +94,7 @@ router.get(
 // ====================== APPROVE MANAGER ======================
 
 router.put(
+
     "/approve-manager/:id",
 
     auth,
@@ -75,24 +105,35 @@ router.put(
 
         try {
 
-            const user = await User.findById(
-                req.params.id
-            );
+            // ====================== FIND USER ======================
+
+            const user =
+                await User.findById(
+                    req.params.id
+                );
+
+            // ====================== USER CHECK ======================
 
             if (!user) {
 
                 return res.status(404).json({
 
-                    message: "User not found"
+                    message:
+                        "User not found"
                 });
             }
 
-            user.role = "manager";
+            // ====================== UPDATE ROLE ======================
+
+            user.role =
+                "manager";
 
             user.managerRequestStatus =
                 "approved";
 
             await user.save();
+
+            // ====================== RESPONSE ======================
 
             return res.json({
 
@@ -108,7 +149,8 @@ router.put(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
@@ -117,6 +159,7 @@ router.put(
 // ====================== REJECT MANAGER ======================
 
 router.put(
+
     "/reject-manager/:id",
 
     auth,
@@ -127,22 +170,32 @@ router.put(
 
         try {
 
-            const user = await User.findById(
-                req.params.id
-            );
+            // ====================== FIND USER ======================
+
+            const user =
+                await User.findById(
+                    req.params.id
+                );
+
+            // ====================== USER CHECK ======================
 
             if (!user) {
 
                 return res.status(404).json({
 
-                    message: "User not found"
+                    message:
+                        "User not found"
                 });
             }
+
+            // ====================== UPDATE STATUS ======================
 
             user.managerRequestStatus =
                 "rejected";
 
             await user.save();
+
+            // ====================== RESPONSE ======================
 
             return res.json({
 
@@ -156,7 +209,8 @@ router.put(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
@@ -165,6 +219,7 @@ router.put(
 // ====================== ADMIN CHANGE PASSWORD ======================
 
 router.put(
+
     "/change-password/:id",
 
     auth,
@@ -175,7 +230,13 @@ router.put(
 
         try {
 
-            const { newPassword } = req.body;
+            const {
+
+                newPassword
+
+            } = req.body;
+
+            // ====================== VALIDATION ======================
 
             if (!newPassword) {
 
@@ -186,22 +247,35 @@ router.put(
                 });
             }
 
-            const user = await User.findById(
-                req.params.id
-            );
+            // ====================== FIND USER ======================
+
+            const user =
+                await User.findById(
+                    req.params.id
+                );
+
+            // ====================== USER CHECK ======================
 
             if (!user) {
 
                 return res.status(404).json({
 
-                    message: "User not found"
+                    message:
+                        "User not found"
                 });
             }
 
+            // ====================== HASH PASSWORD ======================
+
             user.password =
-                await bcrypt.hash(newPassword, 10);
+                await bcrypt.hash(
+                    newPassword,
+                    10
+                );
 
             await user.save();
+
+            // ====================== RESPONSE ======================
 
             return res.json({
 
@@ -215,7 +289,8 @@ router.put(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }

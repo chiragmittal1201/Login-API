@@ -203,24 +203,41 @@
 
             try {
 
-                const response = await fetch(
+                const response =
+                    await fetch(
 
-                    `${BASE_URL}/request-status`,
+                        `${BASE_URL}/request/request-status`,
 
-                    {
+                        {
 
-                        method: "GET",
+                            method: "GET",
 
-                        headers: {
+                            headers: {
 
-                            "Content-Type":
-                                "application/json",
+                                "Content-Type":
+                                    "application/json",
 
-                            "Authorization":
-                                `Bearer ${token}`
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
                         }
-                    }
-                );
+                    );
+
+                // ====================== TOKEN EXPIRED ======================
+
+                if (
+                    response.status === 401
+                ) {
+
+                    localStorage.clear();
+
+                    alert("Session expired");
+
+                    window.location.href =
+                        "login.html";
+
+                    return;
+                }
 
                 const result =
                     await response.json();
@@ -256,8 +273,11 @@
                 // ====================== APPROVED ======================
 
                 if (
+
                     status === "approved" ||
+
                     role === "manager"
+
                 ) {
 
                     badge.className =

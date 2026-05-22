@@ -8,318 +8,107 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
 
-const authorizeRoles =
-    require("./middleware/roleMiddleware");
+// ====================== USER MODEL ======================
+
+const User =
+    require("./models/User");
+
+// ====================== ROUTES ======================
+
+const adminRoutes =
+    require("./routes/adminRoutes");
+
+const managerRoutes =
+    require("./routes/managerRoutes");
+
+const requestRoutes =
+    require("./routes/requestRoutes");
+
+// ====================== MIDDLEWARE ======================
+
+const auth =
+    require("./middleware/authMiddleware");
 
 const app = express();
 
 const PORT = 8000;
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET =
+    process.env.JWT_SECRET;
 
-// ====================== MIDDLEWARE ======================
+// ====================== EXPRESS MIDDLEWARE ======================
 
 app.use(cors({
-    origin: "http://127.0.0.1:5500",
+
+    origin:
+        "http://127.0.0.1:5500",
+
     credentials: true
 }));
 
 app.use(express.json());
 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({
+
+    extended: true
+}));
 
 // ====================== MONGODB CONNECTION ======================
 
-mongoose.connect("mongodb://127.0.0.1:27017/authapp")
-    .then(() => {
+mongoose.connect(
+    "mongodb://127.0.0.1:27017/authapp"
+)
 
-        console.log("MongoDB Connected");
+.then(() => {
 
-    })
-    .catch((err) => {
+    console.log(
+        "MongoDB Connected"
+    );
 
-        console.log(
-            "MongoDB Connection Error:",
-            err
-        );
-    });
+})
+
+.catch((err) => {
+
+    console.log(
+        "MongoDB Connection Error:",
+        err
+    );
+});
 
 // ====================== EMAIL TRANSPORTER ======================
 
-const transporter = nodemailer.createTransport({
+const transporter =
+    nodemailer.createTransport({
 
-    service: "gmail",
+        service: "gmail",
 
-    auth: {
+        auth: {
 
-        user: process.env.EMAIL_USER,
+            user:
+                process.env.EMAIL_USER,
 
-        pass: process.env.EMAIL_PASS
-    }
-});
-
-// ====================== USER SCHEMA ======================
-
-const userSchema = new mongoose.Schema({
-
-    name: {
-
-        type: String,
-
-        required: true
-    },
-
-    email: {
-
-        type: String,
-
-        required: true,
-
-        unique: true
-    },
-
-    phone: {
-
-        type: String,
-
-        required: true,
-
-        unique: true
-    },
-
-    address: {
-
-        type: String
-    },
-
-    state: {
-
-        type: String
-    },
-
-    city: {
-
-        type: String
-    },
-
-    password: {
-
-        type: String,
-
-        required: true
-    },
-
-    // ====================== ROLE ======================
-
-    role: {
-
-        type: String,
-
-        enum: [
-            "user",
-            "manager",
-            "admin"
-        ],
-
-        default: "user"
-    },
-
-    // ====================== MANAGER REQUEST ======================
-
-    managerRequestStatus: {
-
-        type: String,
-
-        enum: [
-            "none",
-            "pending",
-            "approved",
-            "rejected"
-        ],
-
-        default: "none"
-    },
-
-    isVerified: {
-
-        type: Boolean,
-
-        default: false
-    },
-
-    verifiedAt: {
-
-        type: Date
-    },
-
-    verifyEmailToken: {
-
-        type: String
-    },
-
-    verifyEmailExpires: {
-
-        type: Date
-    },
-
-    resetPasswordToken: {
-
-        type: String
-    },
-
-    resetPasswordExpires: {
-
-        type: Date
-    }
-
-}, {
-
-    timestamps: true
-});
-
-const User = mongoose.model(
-    "User",
-    userSchema
-);
-
-// ====================== AUTH MIDDLEWARE ======================
-
-const auth = async (req, res, next) => {
-
-    try {
-
-        let token =
-            req.headers.authorization;
-
-        if (!token) {
-
-            return res.status(401).json({
-
-                message:
-                    "Please login first"
-            });
+            pass:
+                process.env.EMAIL_PASS
         }
+    });
 
-        if (token.startsWith("Bearer ")) {
+// ====================== EXPORTS ======================
 
-            token =
-                token.split(" ")[1];
-        }
+module.exports = {
 
-        const decoded =
-            jwt.verify(
-                token,
-                JWT_SECRET
-            );
-
-        const user =
-            await User.findById(
-                decoded.id
-            ).select("-password");
-
-        if (!user) {
-
-            return res.status(401).json({
-
-                message:
-                    "User not found"
-            });
-        }
-
-        req.user = user;
-
-        next();
-
-    } catch (error) {
-
-        return res.status(401).json({
-
-            message:
-                "Invalid or Expired Token"
-        });
-    }
+    transporter
 };
 
 // ====================== SIGNUP ======================
 
-app.post("/signup", async (req, res) => {
+app.post(
+    "/signup",
 
-    try {
+    async (req, res) => {
 
-        const {
+        try {
 
-            name,
-            email,
-            phone,
-            address,
-            state,
-            city,
-            password
-
-        } = req.body;
-
-        // ====================== VALIDATION ======================
-
-        const requiredFields = {
-
-            name,
-            email,
-            phone,
-            password
-        };
-
-        for (const field in requiredFields) {
-
-            if (!requiredFields[field]) {
-
-                return res.status(400).json({
-
-                    message:
-                        `${field} is required`
-                });
-            }
-        }
-
-        // ====================== CHECK USER ======================
-
-        const existingUser =
-            await User.findOne({
-
-                $or: [
-
-                    { email },
-
-                    { phone }
-                ]
-            });
-
-        if (existingUser) {
-
-            return res.status(400).json({
-
-                message:
-                    "User Already Exists"
-            });
-        }
-
-        // ====================== HASH PASSWORD ======================
-
-        const hashedPassword =
-            await bcrypt.hash(
-                password,
-                10
-            );
-
-        // ====================== VERIFY TOKEN ======================
-
-        const verifyToken =
-            crypto.randomBytes(32)
-                .toString("hex");
-
-        // ====================== CREATE USER ======================
-
-        const user =
-            await User.create({
+            const {
 
                 name,
                 email,
@@ -327,66 +116,147 @@ app.post("/signup", async (req, res) => {
                 address,
                 state,
                 city,
+                password
 
-                password:
-                    hashedPassword,
+            } = req.body;
 
-                verifyEmailToken:
-                    verifyToken,
+            // ====================== VALIDATION ======================
 
-                verifyEmailExpires:
-                    Date.now() + 3600000
+            const requiredFields = {
+
+                name,
+                email,
+                phone,
+                password
+            };
+
+            for (
+                const field
+                in requiredFields
+            ) {
+
+                if (
+                    !requiredFields[field]
+                ) {
+
+                    return res.status(400).json({
+
+                        message:
+                            `${field} is required`
+                    });
+                }
+            }
+
+            // ====================== CHECK USER ======================
+
+            const existingUser =
+                await User.findOne({
+
+                    $or: [
+
+                        { email },
+
+                        { phone }
+                    ]
+                });
+
+            if (existingUser) {
+
+                return res.status(400).json({
+
+                    message:
+                        "User Already Exists"
+                });
+            }
+
+            // ====================== HASH PASSWORD ======================
+
+            const hashedPassword =
+                await bcrypt.hash(
+                    password,
+                    10
+                );
+
+            // ====================== VERIFY TOKEN ======================
+
+            const verifyToken =
+                crypto.randomBytes(32)
+                    .toString("hex");
+
+            // ====================== CREATE USER ======================
+
+            const user =
+                await User.create({
+
+                    name,
+                    email,
+                    phone,
+                    address,
+                    state,
+                    city,
+
+                    password:
+                        hashedPassword,
+
+                    verifyEmailToken:
+                        verifyToken,
+
+                    verifyEmailExpires:
+                        Date.now() + 3600000
+                });
+
+            // ====================== VERIFY LINK ======================
+
+            const verifyLink =
+                `http://localhost:${PORT}/verify-email/${verifyToken}`;
+
+            // ====================== SEND EMAIL ======================
+
+            await transporter.sendMail({
+
+                from:
+                    process.env.EMAIL_USER,
+
+                to:
+                    email,
+
+                subject:
+                    "Verify Your Email",
+
+                html: `
+
+                    <h2>Email Verification</h2>
+
+                    <p>
+                        Click below to verify email
+                    </p>
+
+                    <a href="${verifyLink}">
+                        ${verifyLink}
+                    </a>
+                `
             });
 
-        // ====================== VERIFY LINK ======================
+            return res.status(201).json({
 
-        const verifyLink =
-            `http://localhost:${PORT}/verify-email/${verifyToken}`;
+                success: true,
 
-        // ====================== SEND EMAIL ======================
+                message:
+                    "Signup Successful. Verification email sent.",
 
-        await transporter.sendMail({
+                user
+            });
 
-            from:
-                process.env.EMAIL_USER,
+        } catch (error) {
 
-            to: email,
+            return res.status(500).json({
 
-            subject:
-                "Verify Your Email",
-
-            html: `
-
-                <h2>Email Verification</h2>
-
-                <p>
-                    Click below to verify email
-                </p>
-
-                <a href="${verifyLink}">
-                    ${verifyLink}
-                </a>
-            `
-        });
-
-        return res.status(201).json({
-
-            success: true,
-
-            message:
-                "Signup Successful. Verification email sent.",
-
-            user
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            error: error.message
-        });
+                error:
+                    error.message
+            });
+        }
     }
-});
+);
 
 // ====================== VERIFY EMAIL ======================
 
@@ -443,7 +313,8 @@ app.get(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
@@ -451,116 +322,128 @@ app.get(
 
 // ====================== LOGIN ======================
 
-app.post("/login", async (req, res) => {
+app.post(
+    "/login",
 
-    try {
+    async (req, res) => {
 
-        const {
+        try {
 
-            emailOrPhone,
-            password
+            const {
 
-        } = req.body;
+                emailOrPhone,
+                password
 
-        if (!emailOrPhone || !password) {
+            } = req.body;
 
-            return res.status(400).json({
+            if (
+                !emailOrPhone ||
+                !password
+            ) {
 
-                message:
-                    "Email/Phone and Password are required"
-            });
-        }
+                return res.status(400).json({
 
-        const user =
-            await User.findOne({
+                    message:
+                        "Email/Phone and Password are required"
+                });
+            }
 
-                $or: [
+            const user =
+                await User.findOne({
+
+                    $or: [
+
+                        {
+                            email:
+                                emailOrPhone
+                        },
+
+                        {
+                            phone:
+                                emailOrPhone
+                        }
+                    ]
+                });
+
+            if (!user) {
+
+                return res.status(401).json({
+
+                    message:
+                        "Invalid Credentials"
+                });
+            }
+
+            const isMatch =
+                await bcrypt.compare(
+                    password,
+                    user.password
+                );
+
+            if (!isMatch) {
+
+                return res.status(401).json({
+
+                    message:
+                        "Invalid Credentials"
+                });
+            }
+
+            if (!user.isVerified) {
+
+                return res.status(401).json({
+
+                    message:
+                        "Please verify email first"
+                });
+            }
+
+            // ====================== TOKEN ======================
+
+            const token =
+                jwt.sign(
 
                     {
-                        email:
-                            emailOrPhone
+
+                        id:
+                            user._id,
+
+                        role:
+                            user.role
                     },
 
+                    JWT_SECRET,
+
                     {
-                        phone:
-                            emailOrPhone
+
+                        expiresIn:
+                            "7d"
                     }
-                ]
-            });
+                );
 
-        if (!user) {
+            return res.json({
 
-            return res.status(401).json({
-
-                message:
-                    "Invalid Credentials"
-            });
-        }
-
-        const isMatch =
-            await bcrypt.compare(
-                password,
-                user.password
-            );
-
-        if (!isMatch) {
-
-            return res.status(401).json({
+                success: true,
 
                 message:
-                    "Invalid Credentials"
+                    "Login Successful",
+
+                token,
+
+                role:
+                    user.role
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error:
+                    error.message
             });
         }
-
-        if (!user.isVerified) {
-
-            return res.status(401).json({
-
-                message:
-                    "Please verify email first"
-            });
-        }
-
-        // ====================== TOKEN ======================
-
-        const token =
-            jwt.sign(
-
-                {
-
-                    id: user._id,
-
-                    role: user.role
-                },
-
-                JWT_SECRET,
-
-                {
-
-                    expiresIn: "7d"
-                }
-            );
-
-        return res.json({
-
-            success: true,
-
-            message:
-                "Login Successful",
-
-            token,
-
-            role: user.role
-        });
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            error: error.message
-        });
     }
-});
+);
 
 // ====================== PROFILE ======================
 
@@ -575,7 +458,8 @@ app.get(
 
             success: true,
 
-            user: req.user
+            user:
+                req.user
         });
     }
 );
@@ -620,7 +504,8 @@ app.put(
                         returnDocument:
                             "after"
                     }
-                ).select("-password");
+                )
+                .select("-password");
 
             return res.json({
 
@@ -636,442 +521,28 @@ app.put(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
 );
 
-// ====================== REQUEST MANAGER ACCESS ======================
+// ====================== USE ROUTES ======================
 
-app.post(
-    "/request-manager-role",
-
-    auth,
-
-    authorizeRoles("user"),
-
-    async (req, res) => {
-
-        try {
-
-            const user =
-                await User.findById(
-                    req.user._id
-                );
-
-            if (!user) {
-
-                return res.status(404).json({
-
-                    message:
-                        "User not found"
-                });
-            }
-
-            if (
-                user.managerRequestStatus ===
-                "pending"
-            ) {
-
-                return res.status(400).json({
-
-                    message:
-                        "Request already pending"
-                });
-            }
-
-            user.managerRequestStatus =
-                "pending";
-
-            await user.save();
-
-            return res.json({
-
-                success: true,
-
-                message:
-                    "Manager request submitted"
-            });
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                error: error.message
-            });
-        }
-    }
+app.use(
+    "/admin",
+    adminRoutes
 );
 
-// ====================== REQUEST STATUS ======================
-
-app.get(
-    "/request-status",
-
-    auth,
-
-    async (req, res) => {
-
-        return res.json({
-
-            success: true,
-
-            role:
-                req.user.role,
-
-            managerRequestStatus:
-                req.user.managerRequestStatus
-        });
-    }
+app.use(
+    "/manager",
+    managerRoutes
 );
 
-// ====================== ADMIN DASHBOARD ======================
-
-app.get(
-    "/admin-dashboard",
-
-    auth,
-
-    authorizeRoles("admin"),
-
-    async (req, res) => {
-
-        return res.json({
-
-            success: true,
-
-            message:
-                "Welcome Admin",
-
-            user: req.user
-        });
-    }
-);
-
-// ====================== MANAGER DASHBOARD ======================
-
-app.get(
-    "/manager-dashboard",
-
-    auth,
-
-    authorizeRoles(
-        "manager",
-        "admin"
-    ),
-
-    async (req, res) => {
-
-        return res.json({
-
-            success: true,
-
-            message:
-                "Welcome Manager",
-
-            user: req.user
-        });
-    }
-);
-
-// ====================== GET ALL USERS ======================
-
-app.get(
-    "/all-users",
-
-    auth,
-
-    authorizeRoles(
-        "admin",
-        "manager"
-    ),
-
-    async (req, res) => {
-
-        try {
-
-            const users =
-                await User.find()
-                    .select("-password");
-
-            return res.json({
-
-                success: true,
-
-                count: users.length,
-
-                users
-            });
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                error: error.message
-            });
-        }
-    }
-);
-
-// ====================== APPROVE MANAGER ======================
-
-app.put(
-    "/approve-manager/:id",
-
-    auth,
-
-    authorizeRoles("admin"),
-
-    async (req, res) => {
-
-        try {
-
-            const user =
-                await User.findById(
-                    req.params.id
-                );
-
-            if (!user) {
-
-                return res.status(404).json({
-
-                    message:
-                        "User not found"
-                });
-            }
-
-            user.role = "manager";
-
-            user.managerRequestStatus =
-                "approved";
-
-            await user.save();
-
-            return res.json({
-
-                success: true,
-
-                message:
-                    "Manager approved"
-            });
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                error: error.message
-            });
-        }
-    }
-);
-
-// ====================== REJECT MANAGER ======================
-
-app.put(
-    "/reject-manager/:id",
-
-    auth,
-
-    authorizeRoles("admin"),
-
-    async (req, res) => {
-
-        try {
-
-            const user =
-                await User.findById(
-                    req.params.id
-                );
-
-            if (!user) {
-
-                return res.status(404).json({
-
-                    message:
-                        "User not found"
-                });
-            }
-
-            user.managerRequestStatus =
-                "rejected";
-
-            await user.save();
-
-            return res.json({
-
-                success: true,
-
-                message:
-                    "Manager request rejected"
-            });
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                error: error.message
-            });
-        }
-    }
-);
-
-// ====================== ADMIN CHANGE PASSWORD ======================
-
-app.put(
-    "/admin/change-password/:id",
-
-    auth,
-
-    authorizeRoles("admin"),
-
-    async (req, res) => {
-
-        try {
-
-            const { newPassword } =
-                req.body;
-
-            if (!newPassword) {
-
-                return res.status(400).json({
-
-                    message:
-                        "New password required"
-                });
-            }
-
-            const user =
-                await User.findById(
-                    req.params.id
-                );
-
-            if (!user) {
-
-                return res.status(404).json({
-
-                    message:
-                        "User not found"
-                });
-            }
-
-            user.password =
-                await bcrypt.hash(
-                    newPassword,
-                    10
-                );
-
-            await user.save();
-
-            return res.json({
-
-                success: true,
-
-                message:
-                    "Password changed successfully"
-            });
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                error: error.message
-            });
-        }
-    }
-);
-
-// ====================== MANAGER SEND RESET LINK ======================
-
-app.post(
-    "/manager/send-reset-link/:id",
-
-    auth,
-
-    authorizeRoles(
-        "manager",
-        "admin"
-    ),
-
-    async (req, res) => {
-
-        try {
-
-            const user =
-                await User.findById(
-                    req.params.id
-                );
-
-            if (!user) {
-
-                return res.status(404).json({
-
-                    message:
-                        "User not found"
-                });
-            }
-
-            const resetToken =
-                crypto.randomBytes(32)
-                    .toString("hex");
-
-            const hashedToken =
-                crypto
-                    .createHash("sha256")
-                    .update(resetToken)
-                    .digest("hex");
-
-            user.resetPasswordToken =
-                hashedToken;
-
-            user.resetPasswordExpires =
-                Date.now() + 3600000;
-
-            await user.save();
-
-            const resetLink =
-                `http://127.0.0.1:5500/public/reset-password.html?token=${resetToken}`;
-
-            await transporter.sendMail({
-
-                from:
-                    process.env.EMAIL_USER,
-
-                to: user.email,
-
-                subject:
-                    "Manager Password Reset",
-
-                html: `
-
-                    <h2>Password Reset</h2>
-
-                    <p>
-                        Manager requested password reset.
-                    </p>
-
-                    <a href="${resetLink}">
-                        ${resetLink}
-                    </a>
-                `
-            });
-
-            return res.json({
-
-                success: true,
-
-                message:
-                    "Reset link sent successfully"
-            });
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                error: error.message
-            });
-        }
-    }
+app.use(
+    "/request",
+    requestRoutes
 );
 
 // ====================== FORGOT PASSWORD ======================
@@ -1135,7 +606,8 @@ app.post(
                 from:
                     process.env.EMAIL_USER,
 
-                to: user.email,
+                to:
+                    user.email,
 
                 subject:
                     "Reset Password",
@@ -1162,7 +634,8 @@ app.post(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
@@ -1177,8 +650,11 @@ app.post(
 
         try {
 
-            const { newPassword } =
-                req.body;
+            const {
+
+                newPassword
+
+            } = req.body;
 
             if (!newPassword) {
 
@@ -1244,7 +720,8 @@ app.post(
 
             return res.status(500).json({
 
-                error: error.message
+                error:
+                    error.message
             });
         }
     }
@@ -1252,14 +729,18 @@ app.post(
 
 // ====================== LOGIN ROUTE ======================
 
-app.get("/login", (req, res) => {
+app.get(
+    "/login",
 
-    return res.status(401).json({
+    (req, res) => {
 
-        message:
-            "Please login to continue"
-    });
-});
+        return res.status(401).json({
+
+            message:
+                "Please login to continue"
+        });
+    }
+);
 
 // ====================== SERVER ======================
 

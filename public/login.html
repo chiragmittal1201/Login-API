@@ -48,7 +48,10 @@
 
         <!-- ====================== OUTPUT ====================== -->
 
-        <div class="output" id="output"></div>
+        <div
+            class="output"
+            id="output"
+        ></div>
 
         <!-- ====================== NAVIGATION ====================== -->
 
@@ -76,6 +79,7 @@
 
             <a
                 href="forgot-password.html"
+
                 style="
                     color: #60a5fa;
                     text-decoration: none;
@@ -101,16 +105,161 @@
         const existingRole =
             localStorage.getItem("role");
 
-        if (existingToken && existingRole) {
+        if (
+            existingToken &&
+            existingRole
+        ) {
 
-            if (existingRole === "admin") {
+            redirectByRole(existingRole);
+        }
+
+        // ====================== LOGIN ======================
+
+        async function login() {
+
+            try {
+
+                // ====================== INPUTS ======================
+
+                const emailOrPhone =
+                    document.getElementById(
+                        "emailOrPhone"
+                    ).value.trim();
+
+                const password =
+                    document.getElementById(
+                        "password"
+                    ).value.trim();
+
+                // ====================== VALIDATION ======================
+
+                if (
+                    !emailOrPhone ||
+                    !password
+                ) {
+
+                    showOutput(
+                        "All fields are required"
+                    );
+
+                    return;
+                }
+
+                // ====================== REQUEST ======================
+
+                const response =
+                    await fetch(
+
+                        `${BASE_URL}/login`,
+
+                        {
+
+                            method: "POST",
+
+                            headers: {
+
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    emailOrPhone,
+                                    password
+                                })
+                        }
+                    );
+
+                const result =
+                    await response.json();
+
+                // ====================== FAILED ======================
+
+                if (!response.ok) {
+
+                    showOutput(
+                        result.message ||
+                        "Login Failed"
+                    );
+
+                    return;
+                }
+
+                // ====================== TOKEN CHECK ======================
+
+                if (!result.token) {
+
+                    showOutput(
+                        "Token not received"
+                    );
+
+                    return;
+                }
+
+                // ====================== SAVE TOKEN ======================
+
+                localStorage.setItem(
+
+                    "token",
+
+                    result.token
+                );
+
+                // ====================== SAVE ROLE ======================
+
+                localStorage.setItem(
+
+                    "role",
+
+                    result.role
+                );
+
+                // ====================== SAVE USER ======================
+
+                localStorage.setItem(
+
+                    "userName",
+
+                    emailOrPhone
+                );
+
+                // ====================== SUCCESS ======================
+
+                showOutput(
+                    "Login Successful ✅"
+                );
+
+                setTimeout(() => {
+
+                    redirectByRole(
+                        result.role
+                    );
+
+                }, 1000);
+
+            }
+
+            catch (error) {
+
+                showOutput(
+                    error.message
+                );
+            }
+        }
+
+        // ====================== ROLE REDIRECT ======================
+
+        function redirectByRole(role) {
+
+            if (role === "admin") {
 
                 window.location.href =
                     "admin-dashboard.html";
             }
 
             else if (
-                existingRole === "manager"
+                role === "manager"
             ) {
 
                 window.location.href =
@@ -124,132 +273,13 @@
             }
         }
 
-        // ====================== LOGIN ======================
+        // ====================== OUTPUT ======================
 
-        async function login() {
+        function showOutput(message) {
 
-            try {
-
-                const data = {
-
-                    emailOrPhone:
-                        document.getElementById(
-                            "emailOrPhone"
-                        ).value,
-
-                    password:
-                        document.getElementById(
-                            "password"
-                        ).value
-                };
-
-                const response = await fetch(
-
-                    `${BASE_URL}/login`,
-
-                    {
-
-                        method: "POST",
-
-                        headers: {
-
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify(data)
-                    }
-                );
-
-                const result =
-                    await response.json();
-
-                document.getElementById("output")
-                    .innerText =
-                    JSON.stringify(
-                        result,
-                        null,
-                        2
-                    );
-
-                // ====================== SUCCESS ======================
-
-                if (
-                    response.ok &&
-                    result.token
-                ) {
-
-                    // ====================== SAVE TOKEN ======================
-
-                    localStorage.setItem(
-
-                        "token",
-
-                        result.token
-                    );
-
-                    // ====================== SAVE USER ======================
-
-                    localStorage.setItem(
-
-                        "userName",
-
-                        data.emailOrPhone
-                    );
-
-                    // ====================== SAVE ROLE ======================
-
-                    localStorage.setItem(
-
-                        "role",
-
-                        result.role
-                    );
-
-                    // ====================== SUCCESS ALERT ======================
-
-                    setTimeout(() => {
-
-                        alert(
-                            "Login Successful"
-                        );
-
-                        // ====================== ROLE REDIRECT ======================
-
-                        if (
-                            result.role ===
-                            "admin"
-                        ) {
-
-                            window.location.href =
-                                "admin-dashboard.html";
-                        }
-
-                        else if (
-                            result.role ===
-                            "manager"
-                        ) {
-
-                            window.location.href =
-                                "manager-dashboard.html";
-                        }
-
-                        else {
-
-                            window.location.href =
-                                "profile.html";
-                        }
-
-                    }, 1000);
-                }
-
-            } catch (error) {
-
-                document.getElementById("output")
-                    .innerText =
-                    error.message;
-            }
+            document.getElementById(
+                "output"
+            ).innerText = message;
         }
 
         // ====================== NAVIGATION ======================
