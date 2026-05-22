@@ -1,48 +1,28 @@
-# Login-API# JWT Authentication API
+# Login API
 
-A Node.js Authentication System using:
+JWT-based authentication API built using Node.js, Express.js, and MongoDB.
 
-- Express.js
-- MongoDB
+This project includes authentication workflows such as signup, login, email verification, password reset, protected routes, profile management, and role-based access control (RBAC).
+
+A lightweight frontend using HTML/CSS/JavaScript is included only for local API testing and demonstration purposes.
+
+---
+
+## Features
+
+- User Signup & Login
 - JWT Authentication
-- Email Verification
-- Forgot Password
-- Reset Password
 - Protected Routes
-
-This project also includes a temporary frontend built using plain HTML/CSS/JavaScript for local testing purposes.
-
----
-
-# Features
-
-## Authentication
-- User Signup
-- User Login
-- JWT Token Authentication
-- Protected Profile Route
-- Logout
-
-## Email Features
 - Email Verification
-- Forgot Password Email
-- Reset Password Email
-
-## User Features
-- View Profile
-- Update Profile
-
-## Security
+- Forgot & Reset Password
+- Profile Management
+- Role-Based Access Control (RBAC)
 - Password Hashing using bcrypt
-- JWT Token Validation
-- Protected Middleware
-- Token Expiration
 
 ---
 
-# Tech Stack
+## Tech Stack
 
-## Backend
 - Node.js
 - Express.js
 - MongoDB
@@ -50,64 +30,48 @@ This project also includes a temporary frontend built using plain HTML/CSS/JavaS
 - JWT
 - bcryptjs
 - Nodemailer
-
-## Frontend (Temporary)
-- HTML
-- CSS
-- Vanilla JavaScript
+- HTML/CSS/JavaScript (Temporary Testing UI)
 
 ---
 
-# Project Structure
+## Project Structure
 
-```bash
-project/
-│
-├── index.js
-├── package.json
-├── package-lock.json
-├── .env
-├── README.md
-│
-├── style.css
-│
-├── index.html
-├── signup.html
-├── login.html
-├── profile.html
-├── update-profile.html
-├── forgot-password.html
-├── reset-password.html
-├── verify-success.html
+```text
+middleware/     -> Authentication & RBAC middleware
+public/         -> Temporary frontend testing files
+routes/         -> API route handlers
+index.js        -> Main server entry point
 ```
 
 ---
 
-# Installation
+## API Routes
 
-## Clone Repository
+| Method | Route |
+|--------|-------|
+| POST | /signup |
+| POST | /login |
+| GET | /verify-email/:token |
+| POST | /forgot-password |
+| POST | /reset-password/:token |
+| GET | /profile |
+| PUT | /update-profile |
+
+---
+
+## Installation
 
 ```bash
-git clone <your-github-repo-link>
-```
-
-## Open Project
-
-```bash
-cd project-folder
-```
-
-## Install Dependencies
-
-```bash
+git clone <repo-link>
+cd Login-API
 npm install
 ```
 
 ---
 
-# Environment Variables
+## Environment Variables
 
-Create `.env`
+Create a `.env` file:
 
 ```env
 PORT=8000
@@ -120,7 +84,7 @@ EMAIL_PASS=your_app_password
 
 ---
 
-# Run Project
+## Run Project
 
 ```bash
 node index.js
@@ -128,101 +92,31 @@ node index.js
 
 Server runs on:
 
-```bash
+```text
 http://localhost:8000
 ```
 
 ---
 
-# MongoDB Setup
+## Frontend Note
 
-Default MongoDB URL:
-
-```bash
-mongodb://127.0.0.1:27017/authapp
-```
-
-Make sure MongoDB service is running locally.
-
----
-
-# API Routes
-
-## Authentication
-
-### Signup
-
-```http
-POST /signup
-```
-
-### Login
-
-```http
-POST /login
-```
-
-### Verify Email
-
-```http
-GET /verify-email/:token
-```
-
----
-
-## Password Management
-
-### Forgot Password
-
-```http
-POST /forgot-password
-```
-
-### Reset Password
-
-```http
-POST /reset-password/:token
-```
-
----
-
-## Profile
-
-### Get Profile
-
-```http
-GET /profile
-```
-
-### Update Profile
-
-```http
-PUT /update_profile
-```
-
----
-
-# Frontend Note
-
-The frontend included in this repository is temporary and intended only for local API testing and demonstration purposes.
+The frontend included in this repository is temporary and intended only for local API testing purposes.
 
 The primary focus of this project is the backend authentication API architecture.
 
 ---
 
-# Future Improvements
+## Future Improvements
 
-- React Frontend
 - Refresh Tokens
-- Role Based Authentication
-- File Uploads
 - OAuth Login
-- Better UI/UX
 - Docker Support
 - Deployment
+- Better UI/UX
+- Full React Frontend
 
 ---
 
-# Author
+## Status
 
-Chirag Agrawal
+Backend learning project focused on authentication workflows and secure API handling.
