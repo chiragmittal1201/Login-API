@@ -3,11 +3,11 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
-
+const transporter =
+    require("./config/transporter");
 // ====================== USER MODEL ======================
 
 const User =
@@ -24,17 +24,19 @@ const managerRoutes =
 const requestRoutes =
     require("./routes/requestRoutes");
 
+const authRoutes =
+    require("./routes/authRoutes");
+
 // ====================== MIDDLEWARE ======================
 
 const auth =
     require("./middleware/authMiddleware");
 
+// ====================== APP ======================
+
 const app = express();
 
 const PORT = 8000;
-
-const JWT_SECRET =
-    process.env.JWT_SECRET;
 
 // ====================== EXPRESS MIDDLEWARE ======================
 
@@ -75,22 +77,6 @@ mongoose.connect(
     );
 });
 
-// ====================== EMAIL TRANSPORTER ======================
-
-const transporter =
-    nodemailer.createTransport({
-
-        service: "gmail",
-
-        auth: {
-
-            user:
-                process.env.EMAIL_USER,
-
-            pass:
-                process.env.EMAIL_PASS
-        }
-    });
 
 // ====================== EXPORTS ======================
 
@@ -320,131 +306,6 @@ app.get(
     }
 );
 
-// ====================== LOGIN ======================
-
-app.post(
-    "/login",
-
-    async (req, res) => {
-
-        try {
-
-            const {
-
-                emailOrPhone,
-                password
-
-            } = req.body;
-
-            if (
-                !emailOrPhone ||
-                !password
-            ) {
-
-                return res.status(400).json({
-
-                    message:
-                        "Email/Phone and Password are required"
-                });
-            }
-
-            const user =
-                await User.findOne({
-
-                    $or: [
-
-                        {
-                            email:
-                                emailOrPhone
-                        },
-
-                        {
-                            phone:
-                                emailOrPhone
-                        }
-                    ]
-                });
-
-            if (!user) {
-
-                return res.status(401).json({
-
-                    message:
-                        "Invalid Credentials"
-                });
-            }
-
-            const isMatch =
-                await bcrypt.compare(
-                    password,
-                    user.password
-                );
-
-            if (!isMatch) {
-
-                return res.status(401).json({
-
-                    message:
-                        "Invalid Credentials"
-                });
-            }
-
-            if (!user.isVerified) {
-
-                return res.status(401).json({
-
-                    message:
-                        "Please verify email first"
-                });
-            }
-
-            // ====================== TOKEN ======================
-
-            const token =
-                jwt.sign(
-
-                    {
-
-                        id:
-                            user._id,
-
-                        role:
-                            user.role
-                    },
-
-                    JWT_SECRET,
-
-                    {
-
-                        expiresIn:
-                            "7d"
-                    }
-                );
-
-            return res.json({
-
-                success: true,
-
-                message:
-                    "Login Successful",
-
-                token,
-
-                role:
-                    user.role
-            });
-
-        } catch (error) {
-
-            return res.status(500).json({
-
-                error:
-                    error.message
-            });
-        }
-    }
-);
-
 // ====================== PROFILE ======================
 
 app.get(
@@ -543,6 +404,11 @@ app.use(
 app.use(
     "/request",
     requestRoutes
+);
+
+app.use(
+    "/auth",
+    authRoutes
 );
 
 // ====================== FORGOT PASSWORD ======================

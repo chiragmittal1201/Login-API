@@ -120,6 +120,18 @@ const userSchema =
         resetPasswordExpires: {
 
             type: Date
+        },
+
+        // ====================== LOGIN OTP ======================
+
+        loginOtp: {
+
+            type: String
+        },
+
+        loginOtpExpires: {
+
+            type: Date
         }
 
     }, {
