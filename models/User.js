@@ -132,6 +132,13 @@ const userSchema =
         loginOtpExpires: {
 
             type: Date
+        },
+
+        // ====================== OTP COOLDOWN ======================
+
+        otpCooldownExpires: {
+
+            type: Date
         }
 
     }, {

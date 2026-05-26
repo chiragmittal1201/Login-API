@@ -21,6 +21,11 @@
             margin-top: 20px;
         }
 
+        #resendBtn {
+
+            margin-top: 10px;
+        }
+
     </style>
 
 </head>
@@ -53,6 +58,7 @@
             >
 
             <button
+                id="sendOtpBtn"
                 class="primary-btn"
                 onclick="login()"
             >
@@ -76,6 +82,17 @@
                 onclick="verifyOtp()"
             >
                 Verify OTP
+            </button>
+
+            <!-- ====================== RESEND OTP ====================== -->
+
+            <button
+                id="resendBtn"
+                class="signup-btn"
+                onclick="resendOtp()"
+                disabled
+            >
+                Resend OTP in 60s
             </button>
 
         </div>
@@ -134,6 +151,14 @@
         let savedEmail =
             "";
 
+        let countdown =
+            60;
+
+        let timerInterval;
+
+        let isOtpRequestRunning =
+            false;
+
         // ====================== AUTO REDIRECT ======================
 
         const existingToken =
@@ -155,6 +180,34 @@
         async function login() {
 
             try {
+
+                // ====================== REQUEST LOCK ======================
+
+                if (
+                    isOtpRequestRunning
+                ) {
+
+                    return;
+                }
+
+                isOtpRequestRunning =
+                    true;
+
+                const sendOtpBtn =
+                    document.getElementById(
+                        "sendOtpBtn"
+                    );
+
+                const resendBtn =
+                    document.getElementById(
+                        "resendBtn"
+                    );
+
+                sendOtpBtn.disabled =
+                    true;
+
+                resendBtn.disabled =
+                    true;
 
                 // ====================== INPUTS ======================
 
@@ -181,6 +234,12 @@
                     showOutput(
                         "All fields are required"
                     );
+
+                    sendOtpBtn.disabled =
+                        false;
+
+                    isOtpRequestRunning =
+                        false;
 
                     return;
                 }
@@ -225,6 +284,15 @@
                         "Login Failed"
                     );
 
+                    sendOtpBtn.disabled =
+                        false;
+
+                    resendBtn.disabled =
+                        false;
+
+                    isOtpRequestRunning =
+                        false;
+
                     return;
                 }
 
@@ -233,16 +301,23 @@
                 savedEmail =
                     result.email;
 
-                // ====================== OTP UI ======================
+                // ====================== SHOW OTP SECTION ======================
 
                 document.getElementById(
                     "otpSection"
                 ).style.display =
                     "block";
 
+                // ====================== START TIMER ======================
+
+                startResendTimer();
+
                 showOutput(
-                    "OTP sent to your email"
+                    "OTP sent successfully"
                 );
+
+                isOtpRequestRunning =
+                    false;
 
             }
 
@@ -251,6 +326,13 @@
                 showOutput(
                     error.message
                 );
+
+                document.getElementById(
+                    "sendOtpBtn"
+                ).disabled = false;
+
+                isOtpRequestRunning =
+                    false;
             }
         }
 
@@ -363,6 +445,78 @@
                     error.message
                 );
             }
+        }
+
+        // ====================== RESEND OTP ======================
+
+        async function resendOtp() {
+
+            if (
+                countdown > 0
+            ) {
+
+                return;
+            }
+
+            login();
+        }
+
+        // ====================== TIMER ======================
+
+        function startResendTimer() {
+
+            clearInterval(
+                timerInterval
+            );
+
+            countdown = 60;
+
+            const resendBtn =
+                document.getElementById(
+                    "resendBtn"
+                );
+
+            const sendOtpBtn =
+                document.getElementById(
+                    "sendOtpBtn"
+                );
+
+            resendBtn.disabled =
+                true;
+
+            sendOtpBtn.disabled =
+                true;
+
+            resendBtn.innerText =
+                `Resend OTP in ${countdown}s`;
+
+            timerInterval =
+                setInterval(() => {
+
+                    countdown--;
+
+                    resendBtn.innerText =
+                        `Resend OTP in ${countdown}s`;
+
+                    if (
+                        countdown <= 0
+                    ) {
+
+                        clearInterval(
+                            timerInterval
+                        );
+
+                        resendBtn.disabled =
+                            false;
+
+                        sendOtpBtn.disabled =
+                            false;
+
+                        resendBtn.innerText =
+                            "Resend OTP";
+                    }
+
+                }, 1000);
         }
 
         // ====================== ROLE REDIRECT ======================

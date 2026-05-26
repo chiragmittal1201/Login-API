@@ -2,8 +2,6 @@ const express = require("express");
 
 const bcrypt = require("bcryptjs");
 
-const crypto = require("crypto");
-
 const jwt = require("jsonwebtoken");
 
 // ====================== IMPORTS ======================
@@ -125,15 +123,97 @@ router.post(
 
                 ).toString();
 
-            // ====================== SAVE OTP ======================
+            // ====================== TIME VALUES ======================
 
-            user.loginOtp =
-                otp;
+            const otpExpiry =
+                new Date(
+                    Date.now() + 300000
+                );
 
-            user.loginOtpExpires =
-                Date.now() + 300000;
+            const cooldownExpiry =
+                new Date(
+                    Date.now() + 60000
+                );
 
-            await user.save();
+            // ====================== ATOMIC UPDATE ======================
+
+            const updatedUser =
+                await User.findOneAndUpdate(
+
+                    {
+
+                        _id:
+                            user._id,
+
+                        $or: [
+
+                            {
+                                otpCooldownExpires:
+                                    {
+                                        $exists: false
+                                    }
+                            },
+
+                            {
+                                otpCooldownExpires:
+                                    null
+                            },
+
+                            {
+                                otpCooldownExpires:
+                                    {
+                                        $lte: new Date()
+                                    }
+                            }
+                        ]
+                    },
+
+                    {
+
+                        $set: {
+
+                            loginOtp:
+                                otp,
+
+                            loginOtpExpires:
+                                otpExpiry,
+
+                            otpCooldownExpires:
+                                cooldownExpiry
+                        }
+                    },
+
+                    {
+
+                        new: true
+                    }
+                );
+
+            // ====================== COOLDOWN BLOCK ======================
+
+            if (!updatedUser) {
+
+                const latestUser =
+                    await User.findById(
+                        user._id
+                    );
+
+                const secondsLeft =
+                    Math.ceil(
+
+                        (
+                            latestUser
+                                .otpCooldownExpires -
+                            Date.now()
+                        ) / 1000
+                    );
+
+                return res.status(429).json({
+
+                    message:
+                        `Please wait ${secondsLeft}s before requesting another OTP`
+                });
+            }
 
             // ====================== SEND OTP EMAIL ======================
 
@@ -143,7 +223,7 @@ router.post(
                     process.env.EMAIL_USER,
 
                 to:
-                    user.email,
+                    updatedUser.email,
 
                 subject:
                     "Login OTP Verification",
@@ -176,7 +256,7 @@ router.post(
                     "OTP sent successfully",
 
                 email:
-                    user.email
+                    updatedUser.email
             });
 
         } catch (error) {
@@ -266,6 +346,9 @@ router.post(
                 undefined;
 
             user.loginOtpExpires =
+                undefined;
+
+            user.otpCooldownExpires =
                 undefined;
 
             await user.save();
