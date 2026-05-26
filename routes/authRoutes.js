@@ -12,6 +12,9 @@ const User =
 const transporter =
     require("../config/transporter");
 
+const googleClient =
+    require("../config/googleClient");
+
 // ====================== ROUTER ======================
 
 const router =
@@ -80,6 +83,23 @@ router.post(
 
                     message:
                         "Invalid Credentials"
+                });
+            }
+
+            // ====================== GOOGLE ACCOUNT BLOCK ======================
+
+            if (
+
+                user.authProvider === "google" &&
+
+                !user.password
+
+            ) {
+
+                return res.status(401).json({
+
+                    message:
+                        "Please login using Google"
                 });
             }
 
@@ -386,6 +406,154 @@ router.post(
                     "Login Successful",
 
                 token,
+
+                role:
+                    user.role
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+
+                error:
+                    error.message
+            });
+        }
+    }
+);
+
+// ====================== GOOGLE LOGIN ======================
+
+router.post(
+
+    "/google-login",
+
+    async (req, res) => {
+
+        try {
+
+            const { token } =
+                req.body;
+
+            // ====================== VALIDATION ======================
+
+            if (!token) {
+
+                return res.status(400).json({
+
+                    message:
+                        "Google token is required"
+                });
+            }
+
+            // ====================== VERIFY GOOGLE TOKEN ======================
+
+            const ticket =
+                await googleClient.verifyIdToken({
+
+                    idToken:
+                        token,
+
+                    audience:
+                        process.env.GOOGLE_CLIENT_ID
+                });
+
+            // ====================== GET PAYLOAD ======================
+
+            const payload =
+                ticket.getPayload();
+
+            const {
+
+                sub,
+                email,
+                name
+
+            } = payload;
+
+            // ====================== FIND USER ======================
+
+            let user =
+                await User.findOne({
+
+                    email
+                });
+
+            // ====================== CREATE USER ======================
+
+            if (!user) {
+
+                user =
+                    await User.create({
+
+                        name,
+
+                        email,
+
+                        googleId:
+                            sub,
+
+                        authProvider:
+                            "google",
+
+                        isVerified:
+                            true,
+
+                        verifiedAt:
+                            new Date()
+                    });
+            }
+
+            // ====================== LINK GOOGLE ACCOUNT ======================
+
+            if (
+
+                user.authProvider === "local" &&
+
+                !user.googleId
+
+            ) {
+
+                user.googleId =
+                    sub;
+
+                await user.save();
+            }
+
+            // ====================== GENERATE JWT ======================
+
+            const jwtToken =
+                jwt.sign(
+
+                    {
+
+                        id:
+                            user._id,
+
+                        role:
+                            user.role
+                    },
+
+                    process.env.JWT_SECRET,
+
+                    {
+
+                        expiresIn:
+                            "7d"
+                    }
+                );
+
+            // ====================== RESPONSE ======================
+
+            return res.json({
+
+                success: true,
+
+                message:
+                    "Google Login Successful",
+
+                token:
+                    jwtToken,
 
                 role:
                     user.role

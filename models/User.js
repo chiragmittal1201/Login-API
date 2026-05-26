@@ -26,9 +26,14 @@ const userSchema =
 
             type: String,
 
-            required: true,
+            sparse: true,
 
-            unique: true
+            unique: true,
+
+            required: function () {
+
+                return this.authProvider === "local";
+            }
         },
 
         address: {
@@ -46,11 +51,34 @@ const userSchema =
             type: String
         },
 
+        // ====================== AUTH PROVIDER ======================
+
+        authProvider: {
+
+            type: String,
+
+            enum: [
+
+                "local",
+                "google"
+            ],
+
+            default: "local"
+        },
+
+        googleId: {
+
+            type: String
+        },
+
         password: {
 
             type: String,
 
-            required: true
+            required: function () {
+
+                return this.authProvider === "local";
+            }
         },
 
         // ====================== ROLE ======================
